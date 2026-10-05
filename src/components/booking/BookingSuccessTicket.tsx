@@ -52,12 +52,29 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
   }, [date])
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: currency === 'ARS' ? 'ARS' : 'USD',
-      maximumFractionDigits: 0,
-    }).format(price)
+    return `$${price.toLocaleString('es-AR')}`
   }
+
+  const formatDDMMYYYY = (dateStr: string): string => {
+    if (!dateStr) return ''
+    const parts = dateStr.split('-')
+    if (parts.length === 3) {
+      const [year, month, day] = parts
+      return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
+    }
+    return dateStr
+  }
+
+  const whatsappMessage = [
+    'Hola, quiero confirmar mi reserva en la barbería.',
+    `👤 Cliente: ${client.name.trim()}`,
+    `✂️ Servicio: ${service.name} - ${formatPrice(service.price)}`,
+    `💈 Profesional: ${professional.name}`,
+    `📅 Fecha: ${formatDDMMYYYY(date)}`,
+    `⏰ Hora: ${time}`,
+  ].join('\n')
+
+  const whatsappUrl = `https://wa.me/5492604654255?text=${encodeURIComponent(whatsappMessage)}`
 
   const handleShare = () => {
     if (navigator.share) {
@@ -187,12 +204,12 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
               <Share2 className="w-4 h-4" />
             </button>
             <a
-              href={`https://wa.me/${tenant.whatsappNumber}?text=Hola!%20Tengo%20el%20turno%20%23${bookingCode}`}
+              href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20"
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-4 h-4 fill-white stroke-none" />
               <span>WhatsApp</span>
             </a>
           </div>

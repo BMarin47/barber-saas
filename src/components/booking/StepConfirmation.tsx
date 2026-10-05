@@ -65,12 +65,22 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     }).format(d)
   }, [date])
 
+  const TARGET_WHATSAPP_NUMBER = '5492604654255'
+
+  // Format date to strictly DD/MM/YYYY
+  const formatDDMMYYYY = (dateStr: string): string => {
+    if (!dateStr) return ''
+    const parts = dateStr.split('-')
+    if (parts.length === 3) {
+      const [year, month, day] = parts
+      return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
+    }
+    return dateStr
+  }
+
+  // Format price to e.g. "$15.000"
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: currency === 'ARS' ? 'ARS' : 'USD',
-      maximumFractionDigits: 0,
-    }).format(price)
+    return `$${price.toLocaleString('es-AR')}`
   }
 
   // Validate form
@@ -88,38 +98,36 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     return Object.keys(errs).length === 0
   }
 
-  // Generate WhatsApp message URL
-  const getWhatsAppUrl = () => {
-    const targetPhone = tenant.whatsappNumber || '5491148209988'
-    const message = `👋 ¡Hola ${tenant.name}! Quiero confirmar mi turno:\n\n` +
-      `💈 *Servicio:* ${service.name} (${formatPrice(service.price)})\n` +
-      `✂️ *Profesional:* ${professional.name}\n` +
-      `📅 *Fecha:* ${formattedDate}\n` +
-      `⏰ *Hora:* ${time} hs\n` +
-      `👤 *Cliente:* ${client.name.trim()}\n` +
-      `📱 *Teléfono:* ${client.phone.trim()}\n` +
-      (client.notes.trim() ? `📝 *Nota:* ${client.notes.trim()}\n` : '') +
-      `\n¿Me confirman la reserva? ¡Muchas gracias!`
+  // Build the preformatted WhatsApp URL strictly according to requirements
+  const buildWhatsAppUrl = () => {
+    const formattedDateDDMMYYYY = formatDDMMYYYY(date)
+    const formattedPrice = formatPrice(service.price)
 
-    return `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`
+    const message = [
+      'Hola, quiero confirmar mi reserva en la barbería.',
+      `👤 Cliente: ${client.name.trim()}`,
+      `✂️ Servicio: ${service.name} - ${formattedPrice}`,
+      `💈 Profesional: ${professional.name}`,
+      `📅 Fecha: ${formattedDateDDMMYYYY}`,
+      `⏰ Hora: ${time}`,
+    ].join('\n')
+
+    return `https://wa.me/${TARGET_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
   }
 
-  const handleWhatsAppBooking = async () => {
+  // Intercept confirm event and redirect to WhatsApp
+  const handleConfirm = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!validate()) return
-    setIsSubmitting(true)
-    try {
-      await onConfirmBooking()
-      window.open(getWhatsAppUrl(), '_blank')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
-  const handleDirectConfirm = async () => {
-    if (!validate()) return
     setIsSubmitting(true)
     try {
+      const whatsappUrl = buildWhatsAppUrl()
+      // Open in a new tab immediately
+      window.open(whatsappUrl, '_blank')
       await onConfirmBooking()
+    } catch (error) {
+      console.error('Error confirming booking:', error)
     } finally {
       setIsSubmitting(false)
     }
@@ -250,7 +258,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
               Te enviaremos la confirmación del turno por WhatsApp
             </p>
 
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+            <form onSubmit={handleConfirm} className="space-y-4">
               {/* Name */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300 mb-1.5">
@@ -285,7 +293,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                     required
                     value={client.phone}
                     onChange={(e) => onChangeClient('phone', e.target.value)}
-                    placeholder="Ej. +54 9 11 2345 6789"
+                    placeholder="Ej. +54 9 260 465 4255"
                     className={`w-full px-4 py-3 pl-11 rounded-2xl bg-zinc-950/60 border text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all ${
                       errors.phone ? 'border-rose-500' : 'border-white/[0.08] focus:border-violet-500'
                     }`}
@@ -335,37 +343,23 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                 </div>
               </div>
 
-              {/* Booking CTAs */}
-              <div className="pt-4 space-y-3">
-                {/* Primary WhatsApp CTA */}
+              {/* Booking Action */}
+              <div className="pt-4 space-y-2.5">
                 <button
-                  type="button"
+                  type="submit"
                   disabled={isSubmitting}
-                  onClick={handleWhatsAppBooking}
-                  className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/20 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                  className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold text-base flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/35 transition-all duration-200 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <MessageCircle className="w-5 h-5 fill-white stroke-none" />
                   )}
-                  <span>Enviar Reserva por WhatsApp</span>
+                  <span>Confirmar</span>
                 </button>
-
-                {/* Secondary Direct Confirm */}
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={handleDirectConfirm}
-                  className="w-full py-3.5 px-6 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4" />
-                  )}
-                  <span>Confirmar Reserva en el Sistema</span>
-                </button>
+                <p className="text-center text-xs text-zinc-400">
+                  Al confirmar, se abrirá WhatsApp con el resumen de tu reserva preformateado.
+                </p>
               </div>
             </form>
           </div>
