@@ -108,7 +108,6 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     if (!validate()) return
     setIsSubmitting(true)
     try {
-      // Direct call to confirm booking and open WhatsApp
       await onConfirmBooking()
       window.open(getWhatsAppUrl(), '_blank')
     } finally {
@@ -129,10 +128,10 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Title & Back Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-zinc-100 flex items-center gap-2.5">
-            <CheckCircle2 className="w-6 h-6 text-amber-400" />
+          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-violet-400" />
             <span>Confirmación de Turno</span>
           </h2>
           <p className="text-sm text-zinc-400 mt-1">
@@ -143,7 +142,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-zinc-100 hover:border-zinc-700 text-sm font-semibold transition-all cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] text-zinc-300 hover:text-white hover:border-zinc-700 text-sm font-semibold transition-all cursor-pointer self-start sm:self-auto"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Modificar Fecha/Hora</span>
@@ -153,16 +152,13 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Booking Summary Card */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="rounded-2xl bg-zinc-900/90 border border-amber-500/30 p-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-            {/* Glow effect */}
-            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-
-            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4 mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+          <div className="rounded-3xl bg-zinc-900/30 border border-white/[0.08] p-6 backdrop-blur-xl shadow-xl">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                 Resumen de tu Turno
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                En Espera
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                Por Confirmar
               </span>
             </div>
 
@@ -170,14 +166,14 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
             <div className="space-y-4">
               <div>
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-                    <Scissors className="w-5 h-5 text-amber-400" />
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                    <Scissors className="w-5 h-5 text-violet-400" />
                   </div>
                   <div>
-                    <span className="text-xs text-zinc-400 block uppercase">Servicio</span>
-                    <h3 className="text-base font-bold text-zinc-100">{service.name}</h3>
+                    <span className="text-[10px] text-zinc-500 block uppercase font-medium">Servicio</span>
+                    <h3 className="text-base font-bold text-white">{service.name}</h3>
                     <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-0.5">
-                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                      <Clock className="w-3.5 h-3.5 text-zinc-400" />
                       <span>{service.duration} minutos de atención</span>
                     </div>
                   </div>
@@ -185,37 +181,37 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
               </div>
 
               {/* Professional */}
-              <div className="flex items-start gap-3 pt-3 border-t border-zinc-800/80">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-                  <User className="w-5 h-5 text-amber-400" />
+              <div className="flex items-start gap-3 pt-3 border-t border-white/[0.06]">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                  <User className="w-5 h-5 text-violet-400" />
                 </div>
                 <div>
-                  <span className="text-xs text-zinc-400 block uppercase">Profesional</span>
-                  <h4 className="text-sm font-bold text-zinc-200">{professional.name}</h4>
-                  <span className="text-xs text-amber-400/90 font-medium">{professional.role}</span>
+                  <span className="text-[10px] text-zinc-500 block uppercase font-medium">Profesional</span>
+                  <h4 className="text-sm font-bold text-white">{professional.name}</h4>
+                  <span className="text-xs text-violet-400 font-medium">{professional.role}</span>
                 </div>
               </div>
 
               {/* Date & Time */}
-              <div className="flex items-start gap-3 pt-3 border-t border-zinc-800/80">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-                  <Calendar className="w-5 h-5 text-amber-400" />
+              <div className="flex items-start gap-3 pt-3 border-t border-white/[0.06]">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                  <Calendar className="w-5 h-5 text-violet-400" />
                 </div>
                 <div>
-                  <span className="text-xs text-zinc-400 block uppercase">Día y Horario</span>
-                  <p className="text-sm font-bold text-zinc-200 capitalize">{formattedDate}</p>
-                  <p className="text-xs font-semibold text-amber-400 mt-0.5">{time} hs</p>
+                  <span className="text-[10px] text-zinc-500 block uppercase font-medium">Día y Horario</span>
+                  <p className="text-sm font-bold text-white capitalize">{formattedDate}</p>
+                  <p className="text-xs font-semibold text-violet-400 mt-0.5">{time} hs</p>
                 </div>
               </div>
 
               {/* Location */}
               {tenant.address && (
-                <div className="flex items-start gap-3 pt-3 border-t border-zinc-800/80">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-                    <MapPin className="w-5 h-5 text-amber-400" />
+                <div className="flex items-start gap-3 pt-3 border-t border-white/[0.06]">
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                    <MapPin className="w-5 h-5 text-violet-400" />
                   </div>
                   <div>
-                    <span className="text-xs text-zinc-400 block uppercase">Ubicación</span>
+                    <span className="text-[10px] text-zinc-500 block uppercase font-medium">Ubicación</span>
                     <p className="text-xs text-zinc-300 font-medium">{tenant.address}</p>
                     {tenant.city && <p className="text-[11px] text-zinc-500">{tenant.city}</p>}
                   </div>
@@ -223,13 +219,13 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
               )}
 
               {/* Total Price Banner */}
-              <div className="pt-4 border-t border-zinc-800 flex items-center justify-between">
+              <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between">
                 <div>
-                  <span className="text-xs text-zinc-400 block">Total a pagar en local:</span>
-                  <span className="text-[11px] text-emerald-400 font-medium">Pago al finalizar servicio</span>
+                  <span className="text-xs text-zinc-400 block">Total a pagar:</span>
+                  <span className="text-[11px] text-emerald-400 font-medium">En el local al finalizar</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl font-black text-amber-400 tracking-tight">
+                  <span className="text-2xl font-black text-white tracking-tight">
                     {formatPrice(service.price)}
                   </span>
                 </div>
@@ -237,28 +233,28 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/70 text-xs text-zinc-400">
-            <Shield className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="flex items-center gap-2 p-3.5 rounded-2xl bg-zinc-900/30 border border-white/[0.06] text-xs text-zinc-400">
+            <Shield className="w-4 h-4 text-violet-400 shrink-0" />
             <span>Cancelación gratuita avisando con 2 horas de anticipación.</span>
           </div>
         </div>
 
         {/* Right Column: Customer Details Form & Action Buttons */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800/80 p-6 backdrop-blur-xl">
-            <h3 className="text-lg font-bold text-zinc-100 mb-1 flex items-center gap-2">
-              <User className="w-5 h-5 text-amber-400" />
+          <div className="rounded-3xl bg-zinc-900/30 border border-white/[0.08] p-6 md:p-7 backdrop-blur-xl">
+            <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
+              <User className="w-5 h-5 text-violet-400" />
               <span>Tus Datos de Contacto</span>
             </h3>
             <p className="text-xs text-zinc-400 mb-5">
-              Te enviaremos el recordatorio del turno por WhatsApp
+              Te enviaremos la confirmación del turno por WhatsApp
             </p>
 
             <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
               {/* Name */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300 mb-1.5">
-                  Nombre y Apellido <span className="text-amber-400">*</span>
+                  Nombre y Apellido <span className="text-violet-400">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -267,8 +263,8 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                     value={client.name}
                     onChange={(e) => onChangeClient('name', e.target.value)}
                     placeholder="Ej. Lucas González"
-                    className={`w-full px-4 py-3 pl-11 rounded-xl bg-zinc-950/80 border text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all ${
-                      errors.name ? 'border-rose-500' : 'border-zinc-800 focus:border-amber-500'
+                    className={`w-full px-4 py-3 pl-11 rounded-2xl bg-zinc-950/60 border text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all ${
+                      errors.name ? 'border-rose-500' : 'border-white/[0.08] focus:border-violet-500'
                     }`}
                   />
                   <User className="w-4 h-4 text-zinc-500 absolute left-4 top-3.5" />
@@ -281,7 +277,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
               {/* Phone / WhatsApp */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300 mb-1.5">
-                  Teléfono / WhatsApp <span className="text-amber-400">*</span>
+                  Teléfono / WhatsApp <span className="text-violet-400">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -290,8 +286,8 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                     value={client.phone}
                     onChange={(e) => onChangeClient('phone', e.target.value)}
                     placeholder="Ej. +54 9 11 2345 6789"
-                    className={`w-full px-4 py-3 pl-11 rounded-xl bg-zinc-950/80 border text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all ${
-                      errors.phone ? 'border-rose-500' : 'border-zinc-800 focus:border-amber-500'
+                    className={`w-full px-4 py-3 pl-11 rounded-2xl bg-zinc-950/60 border text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all ${
+                      errors.phone ? 'border-rose-500' : 'border-white/[0.08] focus:border-violet-500'
                     }`}
                   />
                   <Phone className="w-4 h-4 text-zinc-500 absolute left-4 top-3.5" />
@@ -316,7 +312,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                     value={client.email}
                     onChange={(e) => onChangeClient('email', e.target.value)}
                     placeholder="ejemplo@correo.com"
-                    className="w-full px-4 py-3 pl-11 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-amber-500 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
+                    className="w-full px-4 py-3 pl-11 rounded-2xl bg-zinc-950/60 border border-white/[0.08] focus:border-violet-500 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all"
                   />
                   <Mail className="w-4 h-4 text-zinc-500 absolute left-4 top-3.5" />
                 </div>
@@ -332,8 +328,8 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                     rows={2}
                     value={client.notes}
                     onChange={(e) => onChangeClient('notes', e.target.value)}
-                    placeholder="Ej. Prefiero barba perfilada corta y toalla tibia..."
-                    className="w-full px-4 py-3 pl-11 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-amber-500 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all resize-none"
+                    placeholder="Ej. Prefiero degradé bajo y toalla tibia..."
+                    className="w-full px-4 py-3 pl-11 rounded-2xl bg-zinc-950/60 border border-white/[0.08] focus:border-violet-500 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all resize-none"
                   />
                   <FileText className="w-4 h-4 text-zinc-500 absolute left-4 top-3.5" />
                 </div>
@@ -341,12 +337,12 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
 
               {/* Booking CTAs */}
               <div className="pt-4 space-y-3">
-                {/* Primary Button: Send Booking via WhatsApp */}
+                {/* Primary WhatsApp CTA */}
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleWhatsAppBooking}
-                  className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-700 hover:from-emerald-400 hover:to-teal-600 text-white font-bold text-base flex items-center justify-center gap-3 shadow-xl shadow-emerald-600/25 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                  className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/20 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -356,19 +352,19 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   <span>Enviar Reserva por WhatsApp</span>
                 </button>
 
-                {/* Secondary Button: Confirm Online directly */}
+                {/* Secondary Direct Confirm */}
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleDirectConfirm}
-                  className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-zinc-950 font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20 transition-all cursor-pointer"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <CheckCircle2 className="w-4 h-4" />
                   )}
-                  <span>Confirmar Reserva Directa en el Sistema</span>
+                  <span>Confirmar Reserva en el Sistema</span>
                 </button>
               </div>
             </form>

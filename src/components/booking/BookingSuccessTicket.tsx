@@ -83,24 +83,24 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
         </p>
       </div>
 
-      {/* Gold & Dark Ticket Voucher */}
-      <div className="relative rounded-3xl bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border border-amber-500/40 p-6 md:p-8 backdrop-blur-2xl shadow-[0_0_35px_rgba(245,158,11,0.15)] overflow-hidden">
+      {/* Tech Minimalist Ticket Voucher */}
+      <div className="relative rounded-3xl bg-zinc-900/40 border border-white/[0.08] p-6 md:p-8 backdrop-blur-2xl shadow-[0_0_35px_rgba(139,92,246,0.1)] overflow-hidden">
         {/* Glow corner */}
-        <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-48 h-48 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Ticket Header */}
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-5">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-5">
           <div>
-            <div className="flex items-center gap-1.5 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-1">
+            <div className="flex items-center gap-1.5 text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Pase Oficial de Turno</span>
             </div>
-            <h3 className="text-lg md:text-xl font-bold text-zinc-100">{tenant.name}</h3>
+            <h3 className="text-lg md:text-xl font-bold text-white">{tenant.name}</h3>
           </div>
 
           <div className="text-right">
             <span className="text-[11px] text-zinc-500 block uppercase font-mono">Código</span>
-            <span className="text-sm md:text-base font-mono font-extrabold text-amber-400">
+            <span className="text-sm md:text-base font-mono font-extrabold text-violet-400">
               #{bookingCode}
             </span>
           </div>
@@ -112,7 +112,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
             <div>
               <span className="text-xs text-zinc-500 block uppercase">Servicio</span>
               <p className="text-sm md:text-base font-bold text-zinc-100 flex items-center gap-1.5 mt-0.5">
-                <Scissors className="w-4 h-4 text-amber-400 shrink-0" />
+                <Scissors className="w-4 h-4 text-violet-400 shrink-0" />
                 <span className="truncate">{service.name}</span>
               </p>
             </div>
@@ -120,7 +120,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
             <div>
               <span className="text-xs text-zinc-500 block uppercase">Profesional</span>
               <p className="text-sm md:text-base font-bold text-zinc-100 flex items-center gap-1.5 mt-0.5">
-                <User className="w-4 h-4 text-amber-400 shrink-0" />
+                <User className="w-4 h-4 text-violet-400 shrink-0" />
                 <span className="truncate">{professional.name}</span>
               </p>
             </div>
@@ -130,21 +130,21 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
             <div>
               <span className="text-xs text-zinc-500 block uppercase">Fecha</span>
               <p className="text-sm font-semibold text-zinc-200 capitalize flex items-center gap-1.5 mt-0.5">
-                <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                <Calendar className="w-4 h-4 text-violet-400 shrink-0" />
                 <span>{formattedDate}</span>
               </p>
             </div>
 
             <div>
               <span className="text-xs text-zinc-500 block uppercase">Hora</span>
-              <p className="text-sm font-semibold text-amber-400 flex items-center gap-1.5 mt-0.5">
-                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+              <p className="text-sm font-semibold text-violet-400 flex items-center gap-1.5 mt-0.5">
+                <Clock className="w-4 h-4 text-violet-400 shrink-0" />
                 <span>{time} hs ({service.duration} min)</span>
               </p>
             </div>
           </div>
 
-          <div className="pt-2 border-t border-zinc-800/80">
+          <div className="pt-2 border-t border-white/[0.06]">
             <span className="text-xs text-zinc-500 block uppercase">Cliente</span>
             <p className="text-sm font-bold text-zinc-200">{client.name}</p>
             <p className="text-xs text-zinc-400">{client.phone} {client.email ? `• ${client.email}` : ''}</p>
@@ -154,7 +154,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
             <div className="pt-2">
               <span className="text-xs text-zinc-500 block uppercase">Dirección</span>
               <p className="text-xs text-zinc-300 flex items-center gap-1 mt-0.5">
-                <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                <MapPin className="w-3.5 h-3.5 text-violet-400" />
                 <span>{tenant.address}</span>
               </p>
             </div>
@@ -163,16 +163,16 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
 
         {/* Perforated separator */}
         <div className="relative my-2">
-          <div className="border-b border-dashed border-zinc-700/80 w-full" />
-          <div className="absolute -left-10 -top-3 w-6 h-6 rounded-full bg-zinc-950 border-r border-amber-500/30" />
-          <div className="absolute -right-10 -top-3 w-6 h-6 rounded-full bg-zinc-950 border-l border-amber-500/30" />
+          <div className="border-b border-dashed border-zinc-700/60 w-full" />
+          <div className="absolute -left-10 -top-3 w-6 h-6 rounded-full bg-zinc-950 border-r border-white/10" />
+          <div className="absolute -right-10 -top-3 w-6 h-6 rounded-full bg-zinc-950 border-l border-white/10" />
         </div>
 
         {/* Ticket Footer / Total */}
         <div className="pt-4 flex items-center justify-between">
           <div>
             <span className="text-xs text-zinc-500 block uppercase">Total a abonar</span>
-            <span className="text-2xl font-black text-amber-400 tracking-tight">
+            <span className="text-2xl font-black text-violet-400 tracking-tight">
               {formatPrice(service.price)}
             </span>
           </div>
@@ -181,7 +181,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
             <button
               type="button"
               onClick={handleShare}
-              className="p-2.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/60 transition-all cursor-pointer"
+              className="p-2.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-white/[0.08] transition-all cursor-pointer"
               title="Compartir Comprobante"
             >
               <Share2 className="w-4 h-4" />
@@ -204,9 +204,9 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
         <button
           type="button"
           onClick={onReset}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 text-zinc-300 hover:text-zinc-100 text-xs font-semibold transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900/60 border border-white/[0.08] hover:border-violet-500/50 text-zinc-300 hover:text-zinc-100 text-xs font-semibold transition-all cursor-pointer"
         >
-          <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+          <RotateCcw className="w-3.5 h-3.5 text-violet-400" />
           <span>Realizar otra reserva</span>
         </button>
       </div>

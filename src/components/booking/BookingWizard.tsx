@@ -122,7 +122,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           currency={tenant.currency}
         />
       ) : (
-        <div className="rounded-3xl bg-zinc-900/40 border border-zinc-800/80 p-4 md:p-8 backdrop-blur-xl shadow-2xl space-y-6 md:space-y-8">
+        <div className="rounded-3xl bg-zinc-900/20 border border-white/[0.08] p-5 md:p-8 backdrop-blur-2xl shadow-xl space-y-6 md:space-y-8">
           {/* Header & Stepper (3 pasos) */}
           <WizardHeader
             tenant={tenant}
