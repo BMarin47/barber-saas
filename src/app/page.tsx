@@ -42,7 +42,7 @@ export default function HomePage() {
       </nav>
 
       {/* Hero / Context Sub-Header */}
-      <div className="max-w-4xl mx-auto px-4 pt-6 text-center">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 lg:px-12 pt-6 md:pt-10 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 border border-amber-500/25 text-amber-300 mb-3">
           <Layers className="w-3.5 h-3.5 text-amber-400" />
           <span>Vista de Cliente: Flujo de Reserva en 4 Pasos</span>

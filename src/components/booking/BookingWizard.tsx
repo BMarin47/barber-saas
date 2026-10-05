@@ -109,7 +109,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-8">
+    <div className="w-full max-w-5xl mx-auto px-4 md:px-8 lg:px-12 py-6 md:py-10">
       {/* If booking was successfully confirmed */}
       {isSuccess && selectedService && selectedProfessional ? (
         <BookingSuccessTicket
@@ -124,7 +124,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           currency={tenant.currency}
         />
       ) : (
-        <div className="space-y-6">
+        <div className="rounded-3xl bg-zinc-900/40 border border-zinc-800/80 p-4 md:p-8 backdrop-blur-xl shadow-2xl space-y-6 md:space-y-8">
           {/* Header & Stepper */}
           <WizardHeader
             tenant={tenant}

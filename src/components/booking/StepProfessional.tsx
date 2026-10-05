@@ -57,7 +57,7 @@ export const StepProfessional: React.FC<StepProfessionalProps> = ({
       </div>
 
       {/* Grid of Professionals */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {professionals.map((pro) => {
           const isSelected = selectedProfessional?.id === pro.id
           const isAny = pro.id === 'pro-any'

@@ -319,7 +319,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
               <span className="text-[11px] text-zinc-500 font-mono">30 min c/u</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2.5">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {groupedSlots.morning.map((timeSlot) => {
                 const isSelected = selectedTime === timeSlot
 
@@ -353,7 +353,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
               <span className="text-[11px] text-zinc-500 font-mono">30 min c/u</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2.5">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {groupedSlots.afternoon.map((timeSlot) => {
                 const isSelected = selectedTime === timeSlot
 

@@ -31,7 +31,7 @@ export default async function TenantBookingPage({ params }: TenantPageProps) {
 
       {/* Top minimal brand */}
       <nav className="border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50 py-3">
-        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 lg:px-12 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
               <Scissors className="w-3.5 h-3.5 text-zinc-950" />
