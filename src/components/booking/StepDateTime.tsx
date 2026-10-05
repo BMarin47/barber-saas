@@ -13,6 +13,7 @@ import {
   Sparkles,
   AlertCircle,
   Coffee,
+  Info,
 } from 'lucide-react'
 import { ServiceItem, ProfessionalItem } from '@/types/booking'
 import {
@@ -20,6 +21,9 @@ import {
   getTimeSlotsGrouped,
   getDayOfWeekFromDate,
   isBusinessOpen,
+  getArgentinaNow,
+  isPastDateArgentina,
+  isPastTimeTodayArgentina,
 } from '@/utils/generateTimeSlots'
 
 interface StepDateTimeProps {
@@ -42,6 +46,7 @@ interface DayOption {
   isTomorrow: boolean
   isSunday: boolean
   isOpen: boolean
+  isPast: boolean
 }
 
 export const StepDateTime: React.FC<StepDateTimeProps> = ({
@@ -56,17 +61,21 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
 }) => {
   const carouselRef = useRef<HTMLDivElement>(null)
 
-  // Generate the next 14 calendar days
+  // Obtener fecha y hora actual en zona horaria Argentina (America/Argentina/Buenos_Aires, UTC-3)
+  const argentinaNow = useMemo(() => getArgentinaNow(), [])
+  const minDateArgentina = argentinaNow.dateStr
+
+  // Generar los próximos 14 días con minDate anclado a HOY en Argentina
   const availableDays: DayOption[] = useMemo(() => {
     const days: DayOption[] = []
-    const now = new Date()
+    const baseDate = new Date(argentinaNow.year, argentinaNow.month - 1, argentinaNow.day)
 
     const dayFormatter = new Intl.DateTimeFormat('es-AR', { weekday: 'short' })
     const monthFormatter = new Intl.DateTimeFormat('es-AR', { month: 'short' })
 
     for (let i = 0; i < 14; i++) {
-      const d = new Date()
-      d.setDate(now.getDate() + i)
+      const d = new Date(baseDate)
+      d.setDate(baseDate.getDate() + i)
 
       const year = d.getFullYear()
       const month = String(d.getMonth() + 1).padStart(2, '0')
@@ -75,7 +84,8 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
 
       const dayOfWeek = d.getDay()
       const isSunday = dayOfWeek === 0
-      const open = isBusinessOpen(dateStr)
+      const isPast = dateStr < minDateArgentina
+      const open = !isPast && !isSunday
 
       const rawDayName = dayFormatter.format(d).replace('.', '')
       const dayName = rawDayName.charAt(0).toUpperCase() + rawDayName.slice(1)
@@ -87,37 +97,38 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
         dayName,
         dayNumber: d.getDate(),
         monthName,
-        isToday: i === 0,
+        isToday: dateStr === minDateArgentina,
         isTomorrow: i === 1,
         isSunday,
         isOpen: open,
+        isPast,
       })
     }
     return days
-  }, [])
+  }, [argentinaNow, minDateArgentina])
 
-  // Auto-select first OPEN day if none or if current selected day is closed
+  // Auto-seleccionar primer día abierto válido si ninguno está seleccionado o si se seleccionó uno cerrado/pasado
   useEffect(() => {
-    if (!selectedDate && availableDays.length > 0) {
-      const firstOpenDay = availableDays.find((d) => d.isOpen)
-      if (firstOpenDay) {
-        onSelectDate(firstOpenDay.dateStr)
-      }
-    } else if (selectedDate && !isBusinessOpen(selectedDate)) {
-      const firstOpenDay = availableDays.find((d) => d.isOpen)
-      if (firstOpenDay) {
-        onSelectDate(firstOpenDay.dateStr)
+    const isSelectedInvalid =
+      !selectedDate ||
+      isPastDateArgentina(selectedDate) ||
+      !isBusinessOpen(selectedDate)
+
+    if (isSelectedInvalid && availableDays.length > 0) {
+      const firstValidDay = availableDays.find((d) => d.isOpen)
+      if (firstValidDay) {
+        onSelectDate(firstValidDay.dateStr)
       }
     }
   }, [selectedDate, availableDays, onSelectDate])
 
-  // Compute available slots dynamically using generateTimeSlots
+  // Obtener turnos vigentes filtrados por zona horaria de Argentina
   const availableSlotsList = useMemo(() => {
     if (!selectedDate) return []
-    return generateTimeSlots(selectedDate)
+    return generateTimeSlots(selectedDate, true)
   }, [selectedDate])
 
-  // Get grouped slots (morning / afternoon / isClosed)
+  // Obtener slots agrupados por mañana y tarde
   const groupedSlots = useMemo(() => {
     if (!selectedDate) {
       return { morning: [], afternoon: [], all: [], isClosed: true }
@@ -125,7 +136,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
     return getTimeSlotsGrouped(selectedDate)
   }, [selectedDate])
 
-  // If selectedTime is no longer available in the newly selected date, clear it
+  // Si el horario seleccionado ya venció o no está disponible en la fecha elegida, se resetea
   useEffect(() => {
     if (selectedTime && !availableSlotsList.includes(selectedTime)) {
       onSelectTime('')
@@ -139,7 +150,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
     }
   }
 
-  // Format human friendly date string
+  // Formato amigable de fecha
   const selectedDayInfo = availableDays.find((d) => d.dateStr === selectedDate)
   const friendlyDateText = selectedDayInfo
     ? `${selectedDayInfo.isToday ? 'Hoy, ' : selectedDayInfo.isTomorrow ? 'Mañana, ' : ''}${selectedDayInfo.dayName} ${selectedDayInfo.dayNumber} de ${selectedDayInfo.monthName}`
@@ -148,6 +159,8 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
   const dayOfWeekNumber = selectedDate ? getDayOfWeekFromDate(selectedDate) : -1
   const isSaturday = dayOfWeekNumber === 6
   const isSunday = dayOfWeekNumber === 0
+  const isToday = selectedDate === minDateArgentina
+  const allTodaySlotsPassed = isToday && availableSlotsList.length === 0
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -178,10 +191,10 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
             <button
               type="button"
               onClick={onNext}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-zinc-950 font-bold text-sm shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-yellow-500 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-zinc-950 font-bold text-sm shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-yellow-500 transition-all cursor-pointer hover:scale-105 active:scale-95"
             >
               <span>Continuar a Confirmación</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 stroke-[3]" />
             </button>
           )}
         </div>
@@ -192,7 +205,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold uppercase tracking-wider text-amber-400/90 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            1. Selecciona el Día
+            1. Selecciona el Día (Hora oficial de Argentina)
           </label>
 
           <div className="flex items-center gap-1.5">
@@ -215,14 +228,14 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
           </div>
         </div>
 
-        {/* Carousel Container */}
+        {/* Carousel Container (Bloqueo estricto de días pasados con minDate) */}
         <div
           ref={carouselRef}
           className="flex items-center gap-3 overflow-x-auto pb-3 pt-1 scroll-smooth snap-x snap-mandatory"
         >
           {availableDays.map((d) => {
             const isSelected = selectedDate === d.dateStr
-            const isDisabled = !d.isOpen
+            const isDisabled = d.isPast || !d.isOpen
 
             return (
               <button
@@ -238,10 +251,12 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
                     : 'bg-zinc-900/80 border-zinc-800/80 hover:border-amber-500/50 hover:bg-zinc-900 text-zinc-300 cursor-pointer'
                 }`}
               >
-                {/* Badge for Today / Tomorrow / Sunday Closed */}
+                {/* Badge for Today / Tomorrow / Closed / Past */}
                 <span
                   className={`text-[10px] uppercase font-bold tracking-wider mb-1 px-2 py-0.5 rounded-full ${
-                    isDisabled
+                    d.isPast
+                      ? 'bg-zinc-900 text-zinc-600 border border-zinc-800'
+                      : d.isSunday
                       ? 'bg-zinc-900 text-zinc-500 border border-zinc-800'
                       : isSelected
                       ? 'bg-zinc-950 text-amber-400'
@@ -250,7 +265,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
                       : 'text-zinc-500'
                   }`}
                 >
-                  {isDisabled ? 'Cerrado' : d.isToday ? 'Hoy' : d.isTomorrow ? 'Mañana' : d.monthName}
+                  {d.isPast ? 'Pasado' : d.isSunday ? 'Cerrado' : d.isToday ? 'Hoy' : d.isTomorrow ? 'Mañana' : d.monthName}
                 </span>
 
                 <span
@@ -297,6 +312,21 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
           )}
         </div>
 
+        {/* Aviso si todos los turnos de hoy ya pasaron */}
+        {allTodaySlotsPassed && (
+          <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 flex items-start gap-3">
+            <Info className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-xs space-y-1">
+              <p className="font-bold text-sm text-amber-300">
+                Todos los turnos de hoy ({argentinaNow.timeStr} hs) han finalizado
+              </p>
+              <p className="text-zinc-400">
+                Por favor selecciona el día de mañana en el calendario superior para reservar tu horario.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* If Sunday / Closed */}
         {isSunday && (
           <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 text-center space-y-2">
@@ -322,16 +352,20 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {groupedSlots.morning.map((timeSlot) => {
                 const isSelected = selectedTime === timeSlot
+                const isPast = isPastTimeTodayArgentina(timeSlot, selectedDate)
 
                 return (
                   <button
                     key={timeSlot}
                     type="button"
-                    onClick={() => onSelectTime(timeSlot)}
-                    className={`py-3 px-2 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 border cursor-pointer ${
-                      isSelected
-                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 border-amber-300 shadow-md shadow-amber-500/30 scale-[1.03]'
-                        : 'bg-zinc-900/80 border-zinc-800/80 text-zinc-200 hover:border-amber-500/60 hover:bg-zinc-800/90'
+                    disabled={isPast}
+                    onClick={() => !isPast && onSelectTime(timeSlot)}
+                    className={`py-3 px-2 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 border ${
+                      isPast
+                        ? 'opacity-40 cursor-not-allowed line-through text-zinc-600 bg-zinc-950/40 border-zinc-800/40 select-none'
+                        : isSelected
+                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 border-amber-300 shadow-md shadow-amber-500/30 scale-[1.03] cursor-pointer'
+                        : 'bg-zinc-900/80 border-zinc-800/80 text-zinc-200 hover:border-amber-500/60 hover:bg-zinc-800/90 cursor-pointer'
                     }`}
                   >
                     {timeSlot} hs
@@ -356,16 +390,20 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {groupedSlots.afternoon.map((timeSlot) => {
                 const isSelected = selectedTime === timeSlot
+                const isPast = isPastTimeTodayArgentina(timeSlot, selectedDate)
 
                 return (
                   <button
                     key={timeSlot}
                     type="button"
-                    onClick={() => onSelectTime(timeSlot)}
-                    className={`py-3 px-2 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 border cursor-pointer ${
-                      isSelected
-                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 border-amber-300 shadow-md shadow-amber-500/30 scale-[1.03]'
-                        : 'bg-zinc-900/80 border-zinc-800/80 text-zinc-200 hover:border-amber-500/60 hover:bg-zinc-800/90'
+                    disabled={isPast}
+                    onClick={() => !isPast && onSelectTime(timeSlot)}
+                    className={`py-3 px-2 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 border ${
+                      isPast
+                        ? 'opacity-40 cursor-not-allowed line-through text-zinc-600 bg-zinc-950/40 border-zinc-800/40 select-none'
+                        : isSelected
+                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 border-amber-300 shadow-md shadow-amber-500/30 scale-[1.03] cursor-pointer'
+                        : 'bg-zinc-900/80 border-zinc-800/80 text-zinc-200 hover:border-amber-500/60 hover:bg-zinc-800/90 cursor-pointer'
                     }`}
                   >
                     {timeSlot} hs
