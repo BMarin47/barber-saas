@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==========================================
+// MULTI-TENANT CORE
+// ==========================================
+
+model Tenant {
+  id             String   @id @default(cuid())
+  slug           String   @unique // Subdominio o ruta: ej. "imperio-barber" -> app.com/imperio-barber
+  name           String   // Nombre del negocio: ej. "Imperio Barber Club"
+  description    String?  // Descripción del salón
+  phone          String?  // Teléfono general
+  whatsappNumber String?  // WhatsApp para notificaciones de reservas (con código de país)
+  address        String?  // Dirección física
+  city           String?  // Ciudad / Localidad
+  logoUrl        String?  // URL del logo del comercio
+  coverUrl       String?  // URL de portada / banner
+  primaryColor   String   @default("#F59E0B") // Código Hex de acento (por defecto Amber-500)
+  currency       String   @default("ARS") // Moneda (ARS, USD, EUR, etc.)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  professionals  Professional[]
+  services       Service[]
+  categories     ServiceCategory[]
+  bookings       Booking[]
+  businessHours  BusinessHour[]
+
+  @@index([slug])
+}
+
+// ==========================================
+// CATEGORÍAS DE SERVICIOS
+// ==========================================
+
+model ServiceCategory {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String    // ej: "Cortes", "Barba", "Combos VIP", "Tratamientos"
+  order       Int       @default(0)
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+// ==========================================
+// SERVICIOS (CATÁLOGO)
+// ==========================================
+
+model Service {
+  id          String           @id @default(cuid())
+  tenantId    String
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name        String           // ej: "Corte Clásico Fade", "Perfilado de Barba Premium"
+  description String?          // Detalle de qué incluye
+  price       Decimal          @db.Decimal(10, 2) // Precio del servicio
+  duration    Int              // Duración en minutos (ej: 30, 45, 60)
+  imageUrl    String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relaciones
+  bookings      Booking[]
+  professionals ProfessionalService[]
+
+  @@index([tenantId])
+}
+
+// ==========================================
+// PROFESIONALES / STAFF / BARBEROS
+// ==========================================
+
+model Professional {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String   // Nombre completo del barbero/estilista
+  role        String   @default("Master Barber") // Rol: "Master Barber", "Colorista", "Estilista Senior"
+  bio         String?  // Breve descripción o especialidad
+  avatarUrl   String?  // Foto de perfil
+  phone       String?  // WhatsApp del profesional
+  email       String?
+  rating      Float    @default(5.0) // Calificación promedio
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  bookings      Booking[]
+  services      ProfessionalService[]
+  schedules     ProfessionalSchedule[]
+
+  @@index([tenantId])
+}
+
+// Tabla pivote muchos-a-muchos: Qué servicios realiza cada profesional
+model ProfessionalService {
+  professionalId String
+  serviceId      String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  service        Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([professionalId, serviceId])
+}
+
+// ==========================================
+// RESERVAS / BOOKINGS
+// ==========================================
+
+enum BookingStatus {
+  PENDING      // Pendiente de confirmación
+  CONFIRMED    // Confirmada
+  COMPLETED    // Finalizada / Atendido
+  CANCELLED    // Cancelada
+  NO_SHOW      // Cliente no asistió
+}
+
+enum PaymentStatus {
+  PENDING      // Pendiente en local
+  PAID         // Pagado por adelantado
+  PARTIAL      // Seña / Depósito pagado
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional  @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+  serviceId      String
+  service        Service       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  // Datos del Cliente
+  clientName     String        // Nombre y Apellido del cliente
+  clientPhone    String        // Teléfono / WhatsApp del cliente
+  clientEmail    String?       // Email opcional
+  clientNotes    String?       // Notas o pedidos especiales ("barba con toalla caliente")
+
+  // Horario del Turno
+  date           DateTime      // Fecha del turno (YYYY-MM-DD 00:00:00)
+  startTime      String        // ej: "15:00"
+  endTime        String        // ej: "15:45" (calculado con la duración del servicio)
+
+  // Información Económica y Estado
+  totalPrice     Decimal       @db.Decimal(10, 2)
+  status         BookingStatus @default(PENDING)
+  paymentStatus  PaymentStatus @default(PENDING)
+  whatsappSent   Boolean       @default(false) // Si se notificó al barbero/cliente por WA
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([tenantId, date])
+  @@index([professionalId, date])
+  @@index([clientPhone])
+}
+
+// ==========================================
+// HORARIOS DE ATENCIÓN (TENANT Y STAFF)
+// ==========================================
+
+// Horarios de apertura general del local
+model BusinessHour {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dayOfWeek  Int      // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+  openTime   String   // "09:00"
+  closeTime  String   // "20:00"
+  isOpen     Boolean  @default(true)
+
+  @@unique([tenantId, dayOfWeek])
+}
+
+// Horarios específicos o turnos libres por profesional
+model ProfessionalSchedule {
+  id             String       @id @default(cuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  dayOfWeek      Int          // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+  startTime      String       // "10:00"
+  endTime        String       // "19:00"
+  isWorking      Boolean      @default(true)
+
+  @@unique([professionalId, dayOfWeek])
+}

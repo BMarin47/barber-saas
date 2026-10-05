@@ -1,69 +1,83 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import React from 'react'
+import { BookingWizard } from '@/components/booking/BookingWizard'
+import { mockTenant, mockServices, mockProfessionals } from '@/data/mock-tenant'
+import { Scissors, ShieldCheck, Database, Layers, CheckCircle } from 'lucide-react'
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="min-h-screen bg-zinc-950 text-zinc-100 relative overflow-hidden flex flex-col">
+      {/* Background Decorative Gold Ambient Orbs */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-b from-amber-500/10 via-amber-600/5 to-transparent blur-[120px] pointer-events-none" />
+      <div className="absolute top-[30%] -right-40 w-96 h-96 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-[60%] -left-40 w-96 h-96 bg-amber-600/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Top System Bar */}
+      <nav className="border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/20">
+              <Scissors className="w-4 h-4 text-zinc-950" />
+            </div>
+            <div>
+              <span className="font-extrabold text-sm tracking-tight text-zinc-100 flex items-center gap-1.5">
+                BarberSaaS <span className="text-amber-400 text-xs px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/30">Multi-Tenant</span>
+              </span>
+              <p className="text-[10px] text-zinc-400">Motor de Reservas para Barberías & Salones</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Tenant Activo: <strong className="text-amber-400 font-mono">/{mockTenant.slug}</strong></span>
+            </div>
+
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+              <ShieldCheck className="w-3.5 h-3.5" /> Dark & Gold Elegance
+            </span>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero / Context Sub-Header */}
+      <div className="max-w-4xl mx-auto px-4 pt-6 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 border border-amber-500/25 text-amber-300 mb-3">
+          <Layers className="w-3.5 h-3.5 text-amber-400" />
+          <span>Vista de Cliente: Flujo de Reserva en 4 Pasos</span>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-100">
+          Experiencia de Reserva <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-600">Alta Gama</span>
+        </h2>
+        <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto mt-2">
+          Diseñado para salones que buscan transmitir prestigio, rapidez y confirmar citas directamente a WhatsApp.
+        </p>
+      </div>
+
+      {/* The 4-Step Booking Wizard */}
+      <section className="flex-1">
+        <BookingWizard
+          tenant={mockTenant}
+          services={mockServices}
+          professionals={mockProfessionals}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+      </section>
+
+      {/* Tech Stack Specs Footer */}
+      <footer className="mt-12 border-t border-zinc-900 bg-zinc-950/90 py-6 text-xs text-zinc-500">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-amber-500/80" />
+            <span>Arquitectura: Next.js (App Router) • Tailwind CSS • Prisma ORM • Supabase (PostgreSQL)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1 text-emerald-400">
+              <CheckCircle className="w-3.5 h-3.5" /> Multi-Tenant Schema Listo
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+      </footer>
+    </main>
+  )
 }
