@@ -43,32 +43,24 @@ async function main() {
     create: { tenantId: tenant.id, name: 'Combos VIP', order: 3 },
   })
 
-  // 3. Crear Servicios
+  // 3. Crear Servicios Clásicos
   await prisma.service.createMany({
     data: [
       {
         tenantId: tenant.id,
         categoryId: catCortes.id,
-        name: 'Corte Signature Gold & Fade',
-        description: 'Corte personalizado con tijera o navaja, degradé de alta precisión, lavado capilar exfoliante y peinado.',
-        price: 12500,
-        duration: 45,
-      },
-      {
-        tenantId: tenant.id,
-        categoryId: catBarba.id,
-        name: 'Ritual Imperial de Barba',
-        description: 'Perfilado simétrico con navaja tradicional, doble toalla vaporizada con esencias y aceites nutritivos.',
-        price: 9500,
-        duration: 35,
+        name: 'Corte de Pelo',
+        description: 'Corte clásico o degradé moderno con tijera y máquina, lavado capilar y peinado con cera importada.',
+        price: 11000,
+        duration: 30,
       },
       {
         tenantId: tenant.id,
         categoryId: catCombos.id,
-        name: 'Experiencia VIP: Corte + Barba + Cocktail',
-        description: 'Corte Signature completo + Ritual de barba con toalla caliente + perfilado de cejas y bebida de cortesía.',
-        price: 19800,
-        duration: 75,
+        name: 'Corte de Pelo + Barba',
+        description: 'Experiencia completa: corte de cabello + perfilado y arreglo tradicional de barba con toalla caliente y navaja.',
+        price: 17500,
+        duration: 60,
       },
     ],
     skipDuplicates: true,

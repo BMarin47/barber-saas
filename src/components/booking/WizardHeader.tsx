@@ -12,10 +12,9 @@ interface WizardHeaderProps {
 }
 
 const STEPS = [
-  { step: 1, title: 'Servicio', icon: Scissors, subtitle: 'Qué te vas a hacer' },
-  { step: 2, title: 'Profesional', icon: User, subtitle: 'Con quién te atendés' },
-  { step: 3, title: 'Fecha y Hora', icon: Calendar, subtitle: 'Cuándo venís' },
-  { step: 4, title: 'Confirmación', icon: CheckCircle2, subtitle: 'Tus datos y WhatsApp' },
+  { step: 1, title: 'Servicio & Barbero', icon: Scissors, subtitle: 'Qué y con quién' },
+  { step: 2, title: 'Fecha y Hora', icon: Calendar, subtitle: 'Cuándo venís' },
+  { step: 3, title: 'Confirmación', icon: CheckCircle2, subtitle: 'Tus datos y WhatsApp' },
 ]
 
 export const WizardHeader: React.FC<WizardHeaderProps> = ({
@@ -80,7 +79,7 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
 
       {/* Stepper Progress Bar */}
       <nav aria-label="Progreso de Reserva" className="w-full">
-        <div className="grid grid-cols-4 gap-2 md:gap-4 relative">
+        <div className="grid grid-cols-3 gap-2 md:gap-4 relative">
           {STEPS.map((s) => {
             const Icon = s.icon
             const isActive = currentStep === s.step

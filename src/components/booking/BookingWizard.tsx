@@ -8,8 +8,7 @@ import {
   ClientDetails,
 } from '@/types/booking'
 import { WizardHeader } from './WizardHeader'
-import { StepService } from './StepService'
-import { StepProfessional } from './StepProfessional'
+import { StepServiceAndProfessional } from './StepServiceAndProfessional'
 import { StepDateTime } from './StepDateTime'
 import { StepConfirmation } from './StepConfirmation'
 import { BookingSuccessTicket } from './BookingSuccessTicket'
@@ -62,9 +61,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   const canNavigateToStep = (targetStep: number): boolean => {
     if (targetStep === 1) return true
-    if (targetStep === 2) return !!selectedService
-    if (targetStep === 3) return !!selectedService && !!selectedProfessional
-    if (targetStep === 4) return !!selectedService && !!selectedProfessional && !!selectedDate && !!selectedTime
+    if (targetStep === 2) return !!selectedService && !!selectedProfessional
+    if (targetStep === 3) return !!selectedService && !!selectedProfessional && !!selectedDate && !!selectedTime
     return false
   }
 
@@ -125,7 +123,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         />
       ) : (
         <div className="rounded-3xl bg-zinc-900/40 border border-zinc-800/80 p-4 md:p-8 backdrop-blur-xl shadow-2xl space-y-6 md:space-y-8">
-          {/* Header & Stepper */}
+          {/* Header & Stepper (3 pasos) */}
           <WizardHeader
             tenant={tenant}
             currentStep={currentStep}
@@ -133,30 +131,22 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             canNavigateToStep={canNavigateToStep}
           />
 
-          {/* Step 1: Servicios */}
+          {/* Paso 1: Servicio y Profesional en la misma pantalla */}
           {currentStep === 1 && (
-            <StepService
+            <StepServiceAndProfessional
               services={services}
+              professionals={professionals}
               selectedService={selectedService}
+              selectedProfessional={selectedProfessional}
               onSelectService={handleSelectService}
+              onSelectProfessional={handleSelectProfessional}
               onNext={() => setCurrentStep(2)}
               currency={tenant.currency}
             />
           )}
 
-          {/* Step 2: Profesional */}
-          {currentStep === 2 && (
-            <StepProfessional
-              professionals={professionals}
-              selectedProfessional={selectedProfessional}
-              onSelectProfessional={handleSelectProfessional}
-              onNext={() => setCurrentStep(3)}
-              onBack={() => setCurrentStep(1)}
-            />
-          )}
-
-          {/* Step 3: Fecha y Hora */}
-          {currentStep === 3 && selectedService && selectedProfessional && (
+          {/* Paso 2: Fecha y Hora */}
+          {currentStep === 2 && selectedService && selectedProfessional && (
             <StepDateTime
               service={selectedService}
               professional={selectedProfessional}
@@ -164,13 +154,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               selectedTime={selectedTime}
               onSelectDate={handleSelectDate}
               onSelectTime={handleSelectTime}
-              onNext={() => setCurrentStep(4)}
-              onBack={() => setCurrentStep(2)}
+              onNext={() => setCurrentStep(3)}
+              onBack={() => setCurrentStep(1)}
             />
           )}
 
-          {/* Step 4: Confirmación */}
-          {currentStep === 4 && selectedService && selectedProfessional && (
+          {/* Paso 3: Confirmación de Datos */}
+          {currentStep === 3 && selectedService && selectedProfessional && (
             <StepConfirmation
               tenant={tenant}
               service={selectedService}
@@ -180,7 +170,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               client={client}
               onChangeClient={handleChangeClient}
               onConfirmBooking={handleConfirmBooking}
-              onBack={() => setCurrentStep(3)}
+              onBack={() => setCurrentStep(2)}
               currency={tenant.currency}
             />
           )}
