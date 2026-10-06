@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import {
   TenantInfo,
@@ -13,12 +13,15 @@ import { StepServiceAndProfessional } from './StepServiceAndProfessional'
 import { StepDateTime } from './StepDateTime'
 import { StepConfirmation } from './StepConfirmation'
 import { BookingSuccessTicket } from './BookingSuccessTicket'
+import { StickyBottomBar } from './StickyBottomBar'
 
 interface BookingWizardProps {
   tenant: TenantInfo
   services: ServiceItem[]
   professionals: ProfessionalItem[]
 }
+
+const STORAGE_KEY = 'barberSaaS_clientData'
 
 // Spring slide variants delegated to GPU compositor (transform & opacity)
 const stepSlideVariants: Variants = {
@@ -63,9 +66,49 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     email: '',
     notes: '',
   })
+  const [hasAutofilledData, setHasAutofilledData] = useState<boolean>(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('')
+  const [confirmStatus, setConfirmStatus] = useState<'idle' | 'processing' | 'success'>('idle')
   const [isSuccess, setIsSuccess] = useState<boolean>(false)
   const [confirmedBookingCode, setConfirmedBookingCode] = useState<string>('')
+
+  // Ref to trigger StepConfirmation's handleConfirm from the StickyBottomBar
+  const confirmActionRef = useRef<() => void>(undefined)
+
+  const registerConfirmAction = useCallback((fn: () => void) => {
+    confirmActionRef.current = fn
+  }, [])
+
+  const handleStickyConfirm = useCallback(() => {
+    confirmActionRef.current?.()
+  }, [])
+
+  // "Memoria Inteligente" (Auto-fill) from localStorage
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.name || parsed.phone) {
+              setHasAutofilledData(true)
+              setClient((prev) => ({
+                ...prev,
+                name: parsed.name || prev.name,
+                phone: parsed.phone || prev.phone,
+                email: parsed.email || prev.email,
+              }))
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error loading client data from localStorage:', err)
+      }
+    }, 0)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Navigation handlers with direction tracking
   const goToNextStep = useCallback((targetStep: number) => {
@@ -101,7 +144,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   }, [])
 
   const handleChangeClient = useCallback((field: keyof ClientDetails, value: string) => {
-    setClient((prev) => ({ ...prev, [field]: value }))
+    setClient((prev) => {
+      const updated = { ...prev, [field]: value }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          name: updated.name,
+          phone: updated.phone,
+          email: updated.email,
+        }))
+      } catch {
+        // ignore
+      }
+      return updated
+    })
   }, [])
 
   const canNavigateToStep = useCallback((targetStep: number): boolean => {
@@ -121,6 +176,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
     const phone = client.phone
     const fullPhone = phoneWithPrefix || ('549' + phone.replace(/\D/g, ''))
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        name: client.name,
+        phone: client.phone,
+        email: client.email,
+      }))
+    } catch {
+      // ignore
+    }
 
     try {
       await fetch('/api/bookings', {
@@ -156,11 +221,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setSelectedTime('')
     setClient({ name: '', phone: '', email: '', notes: '' })
     setSelectedPaymentMethod('')
+    setConfirmStatus('idle')
     setIsSuccess(false)
   }, [])
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 md:px-8 lg:px-12 py-6 md:py-10">
+    <div className="w-full max-w-5xl mx-auto px-4 md:px-8 lg:px-12 py-6 md:py-10 pb-28 sm:pb-32">
       <AnimatePresence mode="wait">
         {/* If booking was successfully confirmed */}
         {isSuccess && selectedService && selectedProfessional ? (
@@ -272,6 +338,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       onConfirmBooking={handleConfirmBooking}
                       onBack={() => goToPrevStep(2)}
                       currency={tenant.currency}
+                      paymentMethod={selectedPaymentMethod}
+                      onSelectPaymentMethod={setSelectedPaymentMethod}
+                      confirmStatus={confirmStatus}
+                      setConfirmStatus={setConfirmStatus}
+                      registerConfirmAction={registerConfirmAction}
+                      hasAutofilledData={hasAutofilledData}
                     />
                   </motion.div>
                 )}
@@ -280,6 +352,21 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Barra Flotante de Resumen (Sticky Bottom Bar) */}
+      {!isSuccess && (
+        <StickyBottomBar
+          currentStep={currentStep}
+          selectedService={selectedService}
+          selectedProfessional={selectedProfessional}
+          selectedDate={selectedDate}
+          selectedTime={selectedTime}
+          currency={tenant.currency}
+          confirmStatus={confirmStatus}
+          onNext={() => goToNextStep(currentStep + 1)}
+          onConfirm={handleStickyConfirm}
+        />
+      )}
     </div>
   )
 }

@@ -70,6 +70,37 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
 
   const canContinue = !!selectedService && !!selectedProfessional
 
+  const getProfessionalBadge = (pro: ProfessionalItem) => {
+    if (pro.id === 'pro-any') {
+      return {
+        text: '⚡ Turno Rápido',
+        className: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.15)]',
+      }
+    }
+    if (pro.id === 'pro-1' || pro.name.toLowerCase().includes('maestro')) {
+      return {
+        text: '⭐ Más Elegido',
+        className: 'bg-violet-500/10 text-violet-300 border-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.15)]',
+      }
+    }
+    if (pro.id === 'pro-2' || pro.role.toLowerCase().includes('fade')) {
+      return {
+        text: '🔥 Experto en Degradé',
+        className: 'bg-violet-500/10 text-violet-300 border-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.15)]',
+      }
+    }
+    if (pro.id === 'pro-3' || pro.role.toLowerCase().includes('barba')) {
+      return {
+        text: '✂️ Experto en Barba',
+        className: 'bg-violet-500/10 text-violet-300 border-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.15)]',
+      }
+    }
+    return {
+      text: '⭐ Barbero Oficial',
+      className: 'bg-violet-500/10 text-violet-300 border-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.15)]',
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Top Header / Continue CTA */}
@@ -239,6 +270,7 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
           {professionals.map((pro) => {
             const isSelected = selectedProfessional?.id === pro.id
             const isAny = pro.id === 'pro-any'
+            const badge = getProfessionalBadge(pro)
 
             return (
               <motion.div
@@ -301,10 +333,16 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
                       {pro.name}
                     </h4>
 
-                    <div className="flex items-center gap-1 text-[11px] text-zinc-400 mt-1">
-                      <Star className="w-3 h-3 fill-violet-400 text-violet-400" />
-                      <span className="text-zinc-200 font-semibold">{pro.rating}</span>
-                      <span className="text-zinc-500">({pro.reviewCount})</span>
+                    {/* Luminous Badge & Rating */}
+                    <div className="flex items-center justify-between gap-1.5 mt-2.5 pt-2 border-t border-white/[0.06]">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${badge.className}`}>
+                        {badge.text}
+                      </span>
+
+                      <div className="flex items-center gap-1 text-[11px] text-zinc-400 shrink-0">
+                        <Star className="w-3 h-3 fill-violet-400 text-violet-400" />
+                        <span className="text-zinc-200 font-semibold">{pro.rating}</span>
+                      </div>
                     </div>
                   </div>
                 </div>

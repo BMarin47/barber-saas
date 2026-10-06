@@ -36,6 +36,12 @@ interface StepConfirmationProps {
   onConfirmBooking: (fullPhone?: string, paymentMethod?: string) => Promise<void>
   onBack: () => void
   currency?: string
+  paymentMethod: string
+  onSelectPaymentMethod: (method: string) => void
+  confirmStatus: 'idle' | 'processing' | 'success'
+  setConfirmStatus: (status: 'idle' | 'processing' | 'success') => void
+  registerConfirmAction?: (fn: () => void) => void
+  hasAutofilledData?: boolean
 }
 
 export const StepConfirmation: React.FC<StepConfirmationProps> = ({
@@ -49,9 +55,13 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   onConfirmBooking,
   onBack,
   currency = 'ARS',
+  paymentMethod,
+  onSelectPaymentMethod,
+  confirmStatus,
+  setConfirmStatus,
+  registerConfirmAction,
+  hasAutofilledData = false,
 }) => {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<string>('')
   const [errors, setErrors] = useState<{ name?: string; phone?: string; paymentMethod?: string }>({})
 
   // Format date nicely: "Miércoles 7 de Octubre, 2026"
@@ -127,7 +137,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     return `https://wa.me/${TARGET_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
   }, [date, formatDDMMYYYY, formatPrice, service.price, service.name, client.name, professional.name, time, paymentMethod])
 
-  // Intercept confirm event and redirect to WhatsApp
+  // Intercept confirm event and redirect to WhatsApp with micro-interaction animation
   const handleConfirm = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!validate()) return
@@ -135,18 +145,30 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     const phone = client.phone
     const fullPhone = "549" + phone
 
-    setIsSubmitting(true)
+    setConfirmStatus('processing')
     try {
+      // Simulate processing for 800ms
+      await new Promise((resolve) => setTimeout(resolve, 800))
+      setConfirmStatus('success')
+      // Show bright success state for 450ms
+      await new Promise((resolve) => setTimeout(resolve, 450))
+
       const whatsappUrl = buildWhatsAppUrl()
       // Open in a new tab immediately
       window.open(whatsappUrl, '_blank')
       await onConfirmBooking(fullPhone, paymentMethod)
     } catch (error) {
       console.error('Error confirming booking:', error)
-    } finally {
-      setIsSubmitting(false)
+      setConfirmStatus('idle')
     }
-  }, [validate, client.phone, buildWhatsAppUrl, onConfirmBooking, paymentMethod])
+  }, [validate, client.phone, buildWhatsAppUrl, onConfirmBooking, paymentMethod, setConfirmStatus])
+
+  // Register confirmation action for external triggers (e.g. StickyBottomBar)
+  React.useEffect(() => {
+    if (registerConfirmAction) {
+      registerConfirmAction(handleConfirm)
+    }
+  }, [registerConfirmAction, handleConfirm])
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -266,15 +288,22 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
         {/* Right Column: Customer Details Form & Action Buttons */}
         <div className="lg:col-span-7 space-y-6">
           <div className="rounded-3xl bg-zinc-900/30 border border-white/[0.08] p-6 md:p-7 backdrop-blur-xl">
-            <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
-              <User className="w-5 h-5 text-violet-400" />
-              <span>Tus Datos de Contacto</span>
-            </h3>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <User className="w-5 h-5 text-violet-400" />
+                <span>Tus Datos de Contacto</span>
+              </h3>
+              {hasAutofilledData && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                  ⚡ Memoria inteligente
+                </span>
+              )}
+            </div>
             <p className="text-xs text-zinc-400 mb-5">
               Te enviaremos la confirmación del turno por WhatsApp
             </p>
 
-            <form onSubmit={handleConfirm} className="space-y-4">
+            <form id="booking-confirmation-form" onSubmit={handleConfirm} className="space-y-4">
               {/* Name */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300 mb-1.5">
@@ -378,7 +407,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   <motion.button
                     type="button"
                     onClick={() => {
-                      setPaymentMethod('Efectivo / Transferencia en el local')
+                      onSelectPaymentMethod('Efectivo / Transferencia en el local')
                       setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
                     }}
                     whileHover={{ scale: 1.01 }}
@@ -425,7 +454,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   <motion.button
                     type="button"
                     onClick={() => {
-                      setPaymentMethod('Mercado Pago')
+                      onSelectPaymentMethod('Mercado Pago')
                       setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
                     }}
                     whileHover={{ scale: 1.01 }}
@@ -477,17 +506,33 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
               <div className="pt-4 space-y-2.5">
                 <motion.button
                   type="submit"
-                  disabled={isSubmitting}
-                  whileHover={{ scale: 1.015 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/35 transition-all duration-200 cursor-pointer"
+                  disabled={confirmStatus === 'processing' || confirmStatus === 'success'}
+                  whileHover={confirmStatus === 'idle' ? { scale: 1.015 } : undefined}
+                  whileTap={confirmStatus === 'idle' ? { scale: 0.97 } : undefined}
+                  className={`w-full py-4 px-6 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 transition-all duration-200 cursor-pointer min-h-[56px] ${
+                    confirmStatus === 'success'
+                      ? 'bg-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.5)] scale-[1.01]'
+                      : confirmStatus === 'processing'
+                      ? 'bg-violet-600 shadow-lg shadow-violet-600/30 cursor-wait'
+                      : 'bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/35'
+                  }`}
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                  {confirmStatus === 'processing' ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Procesando...</span>
+                    </>
+                  ) : confirmStatus === 'success' ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                      <span>✅ ¡Reserva Lista!</span>
+                    </>
                   ) : (
-                    <MessageCircle className="w-5 h-5 fill-white stroke-none" />
+                    <>
+                      <MessageCircle className="w-5 h-5 fill-white stroke-none" />
+                      <span>Confirmar</span>
+                    </>
                   )}
-                  <span>Confirmar</span>
                 </motion.button>
                 <p className="text-center text-xs text-zinc-400">
                   Al confirmar, se abrirá WhatsApp con el resumen de tu reserva preformateado.
