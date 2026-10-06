@@ -34,7 +34,7 @@ interface StepConfirmationProps {
   client: ClientDetails
   onChangeClient: (field: keyof ClientDetails, value: string) => void
   onConfirmBooking: (fullPhone?: string, paymentMethod?: string) => Promise<void>
-  onBack: () => void
+  onBack?: () => void
   currency?: string
   paymentMethod: string
   onSelectPaymentMethod: (method: string) => void
@@ -184,16 +184,18 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
           </p>
         </div>
 
-        <motion.button
-          type="button"
-          onClick={onBack}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] text-zinc-300 hover:text-white hover:border-zinc-700 text-sm font-semibold transition-all cursor-pointer self-start sm:self-auto"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Modificar Fecha/Hora</span>
-        </motion.button>
+        {onBack && (
+          <motion.button
+            type="button"
+            onClick={onBack}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] text-zinc-300 hover:text-white hover:border-zinc-700 text-sm font-semibold transition-all cursor-pointer self-start sm:self-auto"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Modificar Fecha/Hora</span>
+          </motion.button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

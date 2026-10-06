@@ -9,8 +9,6 @@ import {
   Moon,
   ChevronLeft,
   ChevronRight,
-  ArrowRight,
-  ArrowLeft,
   Sparkles,
   AlertCircle,
   Coffee,
@@ -34,8 +32,8 @@ interface StepDateTimeProps {
   selectedTime: string
   onSelectDate: (date: string) => void
   onSelectTime: (time: string) => void
-  onNext: () => void
-  onBack: () => void
+  onNext?: () => void
+  onBack?: () => void
 }
 
 interface DayOption {
@@ -57,8 +55,6 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
   selectedTime,
   onSelectDate,
   onSelectTime,
-  onNext,
-  onBack,
 }) => {
   const carouselRef = useRef<HTMLDivElement>(null)
 
@@ -176,32 +172,6 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
             Turnos de 30 minutos para <span className="text-white font-semibold">{service.name}</span> con{' '}
             <span className="text-white font-semibold">{professional.name}</span>
           </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <motion.button
-            type="button"
-            onClick={onBack}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] text-zinc-300 hover:text-white hover:border-zinc-700 text-sm font-semibold transition-all cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Atrás</span>
-          </motion.button>
-
-          {selectedTime && (
-            <motion.button
-              type="button"
-              onClick={onNext}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm shadow-lg shadow-violet-600/25 transition-all cursor-pointer"
-            >
-              <span>Continuar a Confirmación</span>
-              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-            </motion.button>
-          )}
         </div>
       </div>
 
@@ -436,21 +406,19 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
         )}
       </div>
 
-      {/* Sticky Mobile Next Button */}
-      {selectedTime && (
-        <div className="pt-4 flex sm:hidden">
-          <motion.button
-            type="button"
-            onClick={onNext}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.97 }}
-            className="w-full py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-600/25"
-          >
-            <span>Continuar a Confirmación</span>
-            <ArrowRight className="w-4 h-4" />
-          </motion.button>
-        </div>
-      )}
+      {/* Feedback de Selección y Auto-Avance */}
+      <div className="pt-2 text-center">
+        {selectedTime ? (
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-semibold animate-pulse">
+            <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+            <span>Turno de las {selectedTime} hs seleccionado. Avanzando a confirmación...</span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-zinc-400 text-xs font-medium">
+            <span>Toca un horario disponible para avanzar automáticamente</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

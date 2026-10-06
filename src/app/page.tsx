@@ -40,21 +40,21 @@ export default function HomePage() {
       </nav>
 
       {/* Hero / Context Sub-Header */}
-      <div className="max-w-5xl mx-auto px-4 md:px-8 lg:px-12 pt-8 md:pt-12 text-center">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-medium bg-white/[0.04] border border-white/[0.08] text-zinc-300 mb-3">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 pt-4 md:pt-6 pb-2 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full text-xs font-medium bg-white/[0.04] border border-white/[0.08] text-zinc-300 mb-2">
           <Layers className="w-3.5 h-3.5 text-violet-400" />
-          <span>Experiencia Directa en 3 Pasos</span>
+          <span>Experiencia Directa • Cero Scroll</span>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
           Reservas Online <span className="text-violet-400">Simples y Rápidas</span>
         </h2>
-        <p className="text-xs sm:text-sm text-zinc-400 max-w-lg mx-auto mt-2">
+        <p className="text-xs sm:text-sm text-zinc-400 max-w-lg mx-auto mt-1">
           Elige tu servicio, barbero y horario en segundos. Confirmación directa a WhatsApp.
         </p>
       </div>
 
       {/* The 3-Step Booking Wizard */}
-      <section className="flex-1">
+      <section className="flex-1 flex flex-col justify-start">
         <BookingWizard
           tenant={mockTenant}
           services={mockServices}
@@ -63,8 +63,8 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="mt-12 border-t border-white/[0.06] bg-black/80 py-6 text-xs text-zinc-500">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="mt-4 border-t border-white/[0.06] bg-black/80 py-3 text-xs text-zinc-500">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Database className="w-4 h-4 text-violet-400" />
             <span>Next.js 16 • Tailwind CSS • Prisma ORM • Supabase (PostgreSQL)</span>
