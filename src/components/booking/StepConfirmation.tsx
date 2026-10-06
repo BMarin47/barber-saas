@@ -378,28 +378,28 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                       setPaymentMethod('Efectivo en el local')
                       setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
                     }}
-                    className={`flex items-center gap-3 p-3.5 min-h-[52px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                    className={`flex items-start gap-3 p-3.5 min-h-[64px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                       paymentMethod === 'Efectivo en el local'
                         ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
                         : 'bg-zinc-900/30 border-white/5 hover:border-white/10 hover:bg-zinc-900/50'
                     }`}
                   >
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                         paymentMethod === 'Efectivo en el local'
                           ? 'bg-violet-500/20 text-violet-400'
                           : 'bg-white/[0.04] text-zinc-400'
                       }`}
                     >
-                      <Banknote className="w-5 h-5" />
+                      <Banknote className="w-5 h-5 shrink-0" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs sm:text-sm font-bold text-white truncate">
+                    <div className="flex-1 min-w-0 pr-0.5">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <span className="text-xs sm:text-sm font-bold text-white whitespace-normal break-words leading-tight">
                           Efectivo en el local
                         </span>
                         <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                             paymentMethod === 'Efectivo en el local'
                               ? 'border-violet-500 bg-violet-500'
                               : 'border-zinc-700 bg-zinc-900'
@@ -410,7 +410,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                           )}
                         </div>
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                      <p className="text-[11px] sm:text-xs text-zinc-400 whitespace-normal break-words leading-tight mt-1">
                         Abonás al finalizar
                       </p>
                     </div>
@@ -423,28 +423,28 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                       setPaymentMethod('Transferencia en el local')
                       setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
                     }}
-                    className={`flex items-center gap-3 p-3.5 min-h-[52px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                    className={`flex items-start gap-3 p-3.5 min-h-[64px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                       paymentMethod === 'Transferencia en el local'
                         ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
                         : 'bg-zinc-900/30 border-white/5 hover:border-white/10 hover:bg-zinc-900/50'
                     }`}
                   >
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                         paymentMethod === 'Transferencia en el local'
                           ? 'bg-violet-500/20 text-violet-400'
                           : 'bg-white/[0.04] text-zinc-400'
                       }`}
                     >
-                      <Landmark className="w-5 h-5" />
+                      <Landmark className="w-5 h-5 shrink-0" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs sm:text-sm font-bold text-white truncate">
+                    <div className="flex-1 min-w-0 pr-0.5">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <span className="text-xs sm:text-sm font-bold text-white whitespace-normal break-words leading-tight">
                           Transferencia en el local
                         </span>
                         <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                             paymentMethod === 'Transferencia en el local'
                               ? 'border-violet-500 bg-violet-500'
                               : 'border-zinc-700 bg-zinc-900'
@@ -455,7 +455,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                           )}
                         </div>
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                      <p className="text-[11px] sm:text-xs text-zinc-400 whitespace-normal break-words leading-tight mt-1">
                         Alias o CBU en el salón
                       </p>
                     </div>
@@ -468,28 +468,28 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                       setPaymentMethod('Mercado Pago')
                       setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
                     }}
-                    className={`flex items-center gap-3 p-3.5 min-h-[52px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                    className={`flex items-start gap-3 p-3.5 min-h-[64px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                       paymentMethod === 'Mercado Pago'
                         ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
                         : 'bg-zinc-900/30 border-white/5 hover:border-white/10 hover:bg-zinc-900/50'
                     }`}
                   >
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                         paymentMethod === 'Mercado Pago'
                           ? 'bg-violet-500/20 text-violet-400'
                           : 'bg-white/[0.04] text-zinc-400'
                       }`}
                     >
-                      <CreditCard className="w-5 h-5" />
+                      <CreditCard className="w-5 h-5 shrink-0" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs sm:text-sm font-bold text-white truncate">
+                    <div className="flex-1 min-w-0 pr-0.5">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <span className="text-xs sm:text-sm font-bold text-white whitespace-normal break-words leading-tight">
                           Mercado Pago
                         </span>
                         <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                             paymentMethod === 'Mercado Pago'
                               ? 'border-violet-500 bg-violet-500'
                               : 'border-zinc-700 bg-zinc-900'
@@ -500,7 +500,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                           )}
                         </div>
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                      <p className="text-[11px] sm:text-xs text-zinc-400 whitespace-normal break-words leading-tight mt-1">
                         QR o transferencia
                       </p>
                     </div>
