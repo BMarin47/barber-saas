@@ -14,6 +14,7 @@ import {
   Share2,
   Banknote,
   CreditCard,
+  Landmark,
 } from 'lucide-react'
 import { TenantInfo, ServiceItem, ProfessionalItem, ClientDetails } from '@/types/booking'
 
@@ -190,6 +191,8 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
               <p className="text-xs text-zinc-300 flex items-center gap-1.5 mt-0.5">
                 {paymentMethod === 'Mercado Pago' ? (
                   <CreditCard className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                ) : paymentMethod === 'Transferencia en el local' ? (
+                  <Landmark className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                 ) : (
                   <Banknote className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                 )}
