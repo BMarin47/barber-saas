@@ -61,14 +61,10 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
   currency = 'ARS',
 }) => {
   const handleServiceSelect = (service: ServiceItem) => {
-    // 1. Inmediatamente actualizar estado para reflejar tarjeta activa
+    // Inmediatamente actualizar estado y avanzar al paso 2 sin delay
     onSelectService(service)
-
-    // 2. Retraso obligatorio de 400ms para percibir feedback visual antes de colapsar
     if (onAdvanceToStep2) {
-      setTimeout(() => {
-        onAdvanceToStep2()
-      }, 400)
+      onAdvanceToStep2()
     }
   }
 

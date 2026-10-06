@@ -54,26 +54,22 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [isSuccess, setIsSuccess] = useState<boolean>(false)
   const [confirmedBookingCode, setConfirmedBookingCode] = useState<string>('')
 
-  // Timer ref for smooth auto-advance debouncing
-  const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  // Panel DOM refs for smart auto-scroll
+  const panel1Ref = useRef<HTMLDivElement>(null)
+  const panel2Ref = useRef<HTMLDivElement>(null)
+  const panel3Ref = useRef<HTMLDivElement>(null)
 
-  const scheduleAutoAdvance = useCallback((targetPanel: number, delayMs = 280) => {
-    if (autoAdvanceTimerRef.current) {
-      clearTimeout(autoAdvanceTimerRef.current)
-    }
-    autoAdvanceTimerRef.current = setTimeout(() => {
-      setActivePanel(targetPanel)
-    }, delayMs)
-  }, [])
-
-  // Clean timer on unmount
+  // Auto-scroll inteligente: enfoca suavemente el panel que se acaba de abrir en móviles y escritorio
   useEffect(() => {
-    return () => {
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current)
-      }
+    const panels = [panel1Ref, panel2Ref, panel3Ref]
+    const target = panels[activePanel - 1]?.current
+    if (target) {
+      const timer = setTimeout(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 50)
+      return () => clearTimeout(timer)
     }
-  }, [])
+  }, [activePanel])
 
   // "Memoria Inteligente" (Auto-fill) from localStorage
   useEffect(() => {
@@ -102,30 +98,30 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     return () => clearTimeout(timer)
   }, [])
 
-  // Auto-advance Step 1: when service is selected, advance to Step 2 after 400ms
+  // Paso 1: Salto instantáneo (Zero Delay) al tocar servicio
   const handleSelectService = useCallback(
     (service: ServiceItem) => {
       setSelectedService(service)
       if (!selectedProfessional && professionals.length > 0) {
         setSelectedProfessional(professionals[0])
       }
-      scheduleAutoAdvance(2, 400)
+      setActivePanel(2)
     },
-    [selectedProfessional, professionals, scheduleAutoAdvance]
+    [selectedProfessional, professionals]
   )
 
   const handleAdvanceToStep2 = useCallback(() => {
-    scheduleAutoAdvance(2, 0)
-  }, [scheduleAutoAdvance])
+    setActivePanel(2)
+  }, [])
 
   const handleSelectProfessional = useCallback(
     (pro: ProfessionalItem) => {
       setSelectedProfessional(pro)
       if (selectedService) {
-        scheduleAutoAdvance(2, 400)
+        setActivePanel(2)
       }
     },
-    [selectedService, scheduleAutoAdvance]
+    [selectedService]
   )
 
   // Step 2 Date & Time
@@ -133,14 +129,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setSelectedDate(date)
   }, [])
 
-  // Auto-advance Step 2: when time is picked
-  const handleSelectTime = useCallback(
-    (time: string) => {
-      setSelectedTime(time)
-      scheduleAutoAdvance(3, 280)
-    },
-    [scheduleAutoAdvance]
-  )
+  // Paso 2: Salto instantáneo (Zero Delay) al hacer clic en un horario
+  const handleSelectTime = useCallback((time: string) => {
+    setSelectedTime(time)
+    setActivePanel(3)
+  }, [])
 
   const handleChangeClient = useCallback((field: keyof ClientDetails, value: string) => {
     setClient((prev) => {
@@ -178,9 +171,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   const handleTogglePanel = useCallback(
     (panelNum: number) => {
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current)
-      }
       if (panelNum === activePanel) {
         // Only 1 panel expanded at a time, keep active
         return
@@ -381,7 +371,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               {/* ======================================================== */}
               {/* PANEL 1: SERVICIO & PROFESIONAL                          */}
               {/* ======================================================== */}
-              <div className="transition-colors">
+              <div ref={panel1Ref} className="transition-colors scroll-mt-4 sm:scroll-mt-6">
                 <div
                   role="button"
                   tabIndex={0}
@@ -477,16 +467,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         height: 'auto',
                         opacity: 1,
                         transition: {
-                          height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-                          opacity: { duration: 0.22, delay: 0.08 },
+                          height: { type: 'spring', stiffness: 300, damping: 30 },
+                          opacity: { duration: 0.18 },
                         },
                       }}
                       exit={{
                         height: 0,
                         opacity: 0,
                         transition: {
-                          height: { duration: 0.26, ease: [0.16, 1, 0.3, 1] },
-                          opacity: { duration: 0.14 },
+                          height: { duration: 0.18, ease: 'easeOut' },
+                          opacity: { duration: 0.12 },
                         },
                       }}
                       className="overflow-hidden border-t border-white/[0.06]"
@@ -511,7 +501,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               {/* ======================================================== */}
               {/* PANEL 2: FECHA Y HORARIO                                 */}
               {/* ======================================================== */}
-              <div className="transition-colors">
+              <div ref={panel2Ref} className="transition-colors scroll-mt-4 sm:scroll-mt-6">
                 <div
                   role="button"
                   tabIndex={0}
@@ -611,16 +601,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         height: 'auto',
                         opacity: 1,
                         transition: {
-                          height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-                          opacity: { duration: 0.22, delay: 0.08 },
+                          height: { type: 'spring', stiffness: 300, damping: 30 },
+                          opacity: { duration: 0.18 },
                         },
                       }}
                       exit={{
                         height: 0,
                         opacity: 0,
                         transition: {
-                          height: { duration: 0.26, ease: [0.16, 1, 0.3, 1] },
-                          opacity: { duration: 0.14 },
+                          height: { duration: 0.18, ease: 'easeOut' },
+                          opacity: { duration: 0.12 },
                         },
                       }}
                       className="overflow-hidden border-t border-white/[0.06]"
@@ -643,7 +633,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               {/* ======================================================== */}
               {/* PANEL 3: TUS DATOS & CONFIRMACIÓN                        */}
               {/* ======================================================== */}
-              <div className="transition-colors">
+              <div ref={panel3Ref} className="transition-colors scroll-mt-4 sm:scroll-mt-6">
                 <div
                   role="button"
                   tabIndex={0}
@@ -746,16 +736,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           height: 'auto',
                           opacity: 1,
                           transition: {
-                            height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-                            opacity: { duration: 0.22, delay: 0.08 },
+                            height: { type: 'spring', stiffness: 300, damping: 30 },
+                            opacity: { duration: 0.18 },
                           },
                         }}
                         exit={{
                           height: 0,
                           opacity: 0,
                           transition: {
-                            height: { duration: 0.26, ease: [0.16, 1, 0.3, 1] },
-                            opacity: { duration: 0.14 },
+                            height: { duration: 0.18, ease: 'easeOut' },
+                            opacity: { duration: 0.12 },
                           },
                         }}
                         className="overflow-hidden border-t border-white/[0.06]"
