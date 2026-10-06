@@ -25,26 +25,27 @@ interface StepServiceAndProfessionalProps {
   currency?: string
 }
 
-// Framer Motion Animation Variants for Staggered Fade-Up
+// Framer Motion Animation Variants for Staggered Fade-Up with GPU-accelerated Spring
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.05,
+      staggerChildren: 0.08,
+      delayChildren: 0.04,
     },
   },
 }
 
 const cardItemVariants: Variants = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 18 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.35,
-      ease: 'easeOut',
+      type: 'spring',
+      stiffness: 360,
+      damping: 26,
     },
   },
 }
@@ -84,14 +85,16 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
         </div>
 
         {canContinue && (
-          <button
+          <motion.button
             type="button"
             onClick={onNext}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm shadow-lg shadow-violet-600/25 transition-all cursor-pointer self-start sm:self-auto hover:scale-105 active:scale-95"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm shadow-lg shadow-violet-600/25 transition-all cursor-pointer self-start sm:self-auto"
           >
             <span>Continuar a Fecha y Hora</span>
             <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-          </button>
+          </motion.button>
         )}
       </div>
 
@@ -111,11 +114,12 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
           )}
         </div>
 
-        {/* Staggered Grid de 3 Tarjetas con Glassmorphism suave */}
+        {/* Staggered Grid de 3 Tarjetas con Glassmorphism suave y Scroll Reveal */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
-          animate="visible"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5"
         >
           {services.map((service) => {
@@ -126,8 +130,8 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
               <motion.div
                 key={service.id}
                 variants={cardItemVariants}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => onSelectService(service)}
                 className={`group relative rounded-3xl p-6 transition-all duration-200 cursor-pointer flex flex-col justify-between border backdrop-blur-md ${
                   isSelected
@@ -224,11 +228,12 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
           )}
         </div>
 
-        {/* Grilla de Barberos con Anillo Suave */}
+        {/* Grilla de Barberos con Anillo Suave y Scroll Reveal */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
-          animate="visible"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5"
         >
           {professionals.map((pro) => {
@@ -239,8 +244,8 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
               <motion.div
                 key={pro.id}
                 variants={cardItemVariants}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => onSelectProfessional(pro)}
                 className={`group relative rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between border backdrop-blur-md ${
                   isSelected
@@ -311,10 +316,12 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
 
       {/* Botón Inferior de Continuar (iOS Style) */}
       <div className="pt-2">
-        <button
+        <motion.button
           type="button"
           disabled={!canContinue}
           onClick={onNext}
+          whileHover={canContinue ? { scale: 1.01 } : undefined}
+          whileTap={canContinue ? { scale: 0.97 } : undefined}
           className={`w-full py-4 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition-all duration-200 cursor-pointer ${
             canContinue
               ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-600/25 active:scale-[0.99]'
@@ -329,7 +336,7 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
               : 'Paso 2: Selecciona un barbero arriba'}
           </span>
           {canContinue && <ArrowRight className="w-5 h-5 stroke-[2.5]" />}
-        </button>
+        </motion.button>
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { motion } from 'framer-motion'
 import {
   CheckCircle2,
   Calendar,
@@ -14,7 +15,6 @@ import {
   Share2,
   Banknote,
   CreditCard,
-  Landmark,
 } from 'lucide-react'
 import { TenantInfo, ServiceItem, ProfessionalItem, ClientDetails } from '@/types/booking'
 
@@ -38,7 +38,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
   date,
   time,
   client,
-  bookingCode = 'GB-' + Math.floor(1000 + Math.random() * 9000),
+  bookingCode = 'GB-5420',
   paymentMethod,
   onReset,
   currency = 'ARS',
@@ -57,7 +57,11 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
   }, [date])
 
   const formatPrice = (price: number) => {
-    return `$${price.toLocaleString('es-AR')}`
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: currency === 'USD' ? 'USD' : 'ARS',
+      maximumFractionDigits: 0,
+    }).format(price)
   }
 
   const formatDDMMYYYY = (dateStr: string): string => {
@@ -191,8 +195,6 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
               <p className="text-xs text-zinc-300 flex items-center gap-1.5 mt-0.5">
                 {paymentMethod === 'Mercado Pago' ? (
                   <CreditCard className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                ) : paymentMethod === 'Transferencia en el local' ? (
-                  <Landmark className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                 ) : (
                   <Banknote className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                 )}
@@ -219,37 +221,43 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <motion.button
               type="button"
               onClick={handleShare}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               className="p-2.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-white/[0.08] transition-all cursor-pointer"
               title="Compartir Comprobante"
             >
               <Share2 className="w-4 h-4" />
-            </button>
-            <a
+            </motion.button>
+            <motion.a
               href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20"
             >
               <MessageCircle className="w-4 h-4 fill-white stroke-none" />
               <span>WhatsApp</span>
-            </a>
+            </motion.a>
           </div>
         </div>
       </div>
 
       {/* Reset / Make another booking */}
       <div className="text-center pt-2">
-        <button
+        <motion.button
           type="button"
           onClick={onReset}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900/60 border border-white/[0.08] hover:border-violet-500/50 text-zinc-300 hover:text-zinc-100 text-xs font-semibold transition-all cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5 text-violet-400" />
           <span>Realizar otra reserva</span>
-        </button>
+        </motion.button>
       </div>
     </div>
   )

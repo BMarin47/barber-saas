@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { motion } from 'framer-motion'
 import { Scissors, Calendar, CheckCircle2, Star, MapPin } from 'lucide-react'
 import { TenantInfo } from '@/types/booking'
 
@@ -80,11 +81,13 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
             const canClick = canNavigateToStep ? canNavigateToStep(s.step) : isCompleted
 
             return (
-              <button
+              <motion.button
                 key={s.step}
                 type="button"
                 disabled={!canClick && !isActive}
                 onClick={() => canClick && onStepClick?.(s.step)}
+                whileHover={canClick ? { scale: 1.015 } : undefined}
+                whileTap={canClick ? { scale: 0.97 } : undefined}
                 className={`relative group text-left transition-all duration-200 rounded-2xl p-3 md:p-3.5 border ${
                   isActive
                     ? 'bg-zinc-900/90 border-violet-500 ring-1 ring-violet-500/50 shadow-sm'
@@ -134,7 +137,7 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
                     </span>
                   </div>
                 </div>
-              </button>
+              </motion.button>
             )
           })}
         </div>

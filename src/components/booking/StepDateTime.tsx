@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useMemo, useRef, useEffect } from 'react'
+import React, { useMemo, useRef, useEffect, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -143,12 +144,12 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
     }
   }, [selectedDate, availableSlotsList, selectedTime, onSelectTime])
 
-  const scrollCarousel = (direction: 'left' | 'right') => {
+  const scrollCarousel = useCallback((direction: 'left' | 'right') => {
     if (carouselRef.current) {
       const scrollAmount = direction === 'left' ? -240 : 240
       carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
     }
-  }
+  }, [])
 
   // Formato amigable de fecha
   const selectedDayInfo = availableDays.find((d) => d.dateStr === selectedDate)
@@ -178,24 +179,28 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <button
+          <motion.button
             type="button"
             onClick={onBack}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
             className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] text-zinc-300 hover:text-white hover:border-zinc-700 text-sm font-semibold transition-all cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Atrás</span>
-          </button>
+          </motion.button>
 
           {selectedTime && (
-            <button
+            <motion.button
               type="button"
               onClick={onNext}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm shadow-lg shadow-violet-600/25 transition-all cursor-pointer hover:scale-105 active:scale-95"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm shadow-lg shadow-violet-600/25 transition-all cursor-pointer"
             >
               <span>Continuar a Confirmación</span>
               <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-            </button>
+            </motion.button>
           )}
         </div>
       </div>
@@ -209,22 +214,24 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
           </label>
 
           <div className="flex items-center gap-1.5">
-            <button
+            <motion.button
               type="button"
               onClick={() => scrollCarousel('left')}
+              whileTap={{ scale: 0.92 }}
               className="p-1.5 rounded-xl bg-zinc-900/60 border border-white/[0.08] hover:border-zinc-700 text-zinc-400 hover:text-white transition-all cursor-pointer"
               aria-label="Días anteriores"
             >
               <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => scrollCarousel('right')}
+              whileTap={{ scale: 0.92 }}
               className="p-1.5 rounded-xl bg-zinc-900/60 border border-white/[0.08] hover:border-zinc-700 text-zinc-400 hover:text-white transition-all cursor-pointer"
               aria-label="Próximos días"
             >
               <ChevronRight className="w-4 h-4" />
-            </button>
+            </motion.button>
           </div>
         </div>
 
@@ -238,11 +245,13 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
             const isDisabled = d.isPast || !d.isOpen
 
             return (
-              <button
+              <motion.button
                 key={d.dateStr}
                 type="button"
                 disabled={isDisabled}
                 onClick={() => !isDisabled && onSelectDate(d.dateStr)}
+                whileHover={!isDisabled ? { scale: 1.02 } : undefined}
+                whileTap={!isDisabled ? { scale: 0.97 } : undefined}
                 className={`snap-start shrink-0 w-24 sm:w-28 py-3 px-2 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 border ${
                   isDisabled
                     ? 'bg-zinc-950/40 border-zinc-900 text-zinc-600 opacity-40 cursor-not-allowed select-none'
@@ -289,7 +298,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
                 >
                   {d.dayNumber}
                 </span>
-              </button>
+              </motion.button>
             )
           })}
         </div>
@@ -353,11 +362,13 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
                 const isPast = isPastTimeTodayArgentina(timeSlot, selectedDate)
 
                 return (
-                  <button
+                  <motion.button
                     key={timeSlot}
                     type="button"
                     disabled={isPast}
                     onClick={() => !isPast && onSelectTime(timeSlot)}
+                    whileHover={!isPast ? { scale: 1.03 } : undefined}
+                    whileTap={!isPast ? { scale: 0.97 } : undefined}
                     className={`py-3 px-2 rounded-2xl text-xs md:text-sm font-bold transition-all duration-200 border ${
                       isPast
                         ? 'opacity-40 cursor-not-allowed line-through text-zinc-600 bg-zinc-950/40 border-zinc-900/60 select-none'
@@ -367,7 +378,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
                     }`}
                   >
                     {timeSlot} hs
-                  </button>
+                  </motion.button>
                 )
               })}
             </div>
@@ -391,11 +402,13 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
                 const isPast = isPastTimeTodayArgentina(timeSlot, selectedDate)
 
                 return (
-                  <button
+                  <motion.button
                     key={timeSlot}
                     type="button"
                     disabled={isPast}
                     onClick={() => !isPast && onSelectTime(timeSlot)}
+                    whileHover={!isPast ? { scale: 1.03 } : undefined}
+                    whileTap={!isPast ? { scale: 0.97 } : undefined}
                     className={`py-3 px-2 rounded-2xl text-xs md:text-sm font-bold transition-all duration-200 border ${
                       isPast
                         ? 'opacity-40 cursor-not-allowed line-through text-zinc-600 bg-zinc-950/40 border-zinc-900/60 select-none'
@@ -405,7 +418,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
                     }`}
                   >
                     {timeSlot} hs
-                  </button>
+                  </motion.button>
                 )
               })}
             </div>
@@ -426,14 +439,16 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
       {/* Sticky Mobile Next Button */}
       {selectedTime && (
         <div className="pt-4 flex sm:hidden">
-          <button
+          <motion.button
             type="button"
             onClick={onNext}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.97 }}
             className="w-full py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-600/25"
           >
             <span>Continuar a Confirmación</span>
             <ArrowRight className="w-4 h-4" />
-          </button>
+          </motion.button>
         </div>
       )}
     </div>

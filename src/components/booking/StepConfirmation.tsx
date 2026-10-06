@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import {
   Calendar,
   Clock,
@@ -11,13 +12,11 @@ import {
   CheckCircle2,
   ArrowLeft,
   Mail,
-  Phone,
   FileText,
   Shield,
   Loader2,
   Banknote,
   CreditCard,
-  Landmark,
 } from 'lucide-react'
 import {
   TenantInfo,
@@ -56,7 +55,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   const [errors, setErrors] = useState<{ name?: string; phone?: string; paymentMethod?: string }>({})
 
   // Format date nicely: "Miércoles 7 de Octubre, 2026"
-  const formattedDate = React.useMemo(() => {
+  const formattedDate = useMemo(() => {
     if (!date) return ''
     const parts = date.split('-')
     if (parts.length !== 3) return date
@@ -72,7 +71,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   const TARGET_WHATSAPP_NUMBER = '5492604654255'
 
   // Format date to strictly DD/MM/YYYY
-  const formatDDMMYYYY = (dateStr: string): string => {
+  const formatDDMMYYYY = useCallback((dateStr: string): string => {
     if (!dateStr) return ''
     const parts = dateStr.split('-')
     if (parts.length === 3) {
@@ -80,15 +79,19 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
     }
     return dateStr
-  }
+  }, [])
 
   // Format price to e.g. "$15.000"
-  const formatPrice = (price: number) => {
-    return `$${price.toLocaleString('es-AR')}`
-  }
+  const formatPrice = useCallback((price: number) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: currency === 'USD' ? 'USD' : 'ARS',
+      maximumFractionDigits: 0,
+    }).format(price)
+  }, [currency])
 
   // Validate form
-  const validate = () => {
+  const validate = useCallback(() => {
     const errs: { name?: string; phone?: string; paymentMethod?: string } = {}
     if (!client.name.trim()) {
       errs.name = 'Por favor ingresa tu nombre y apellido'
@@ -104,14 +107,12 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     }
     setErrors(errs)
     return Object.keys(errs).length === 0
-  }
+  }, [client.name, client.phone, paymentMethod])
 
   // Build the preformatted WhatsApp URL strictly according to requirements
-  const buildWhatsAppUrl = () => {
+  const buildWhatsAppUrl = useCallback(() => {
     const formattedDateDDMMYYYY = formatDDMMYYYY(date)
     const formattedPrice = formatPrice(service.price)
-    const phone = client.phone
-    const fullPhone = "549" + phone
 
     const message = [
       'Hola, quiero confirmar mi reserva en la barbería.',
@@ -124,10 +125,10 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     ].join('\n')
 
     return `https://wa.me/${TARGET_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
-  }
+  }, [date, formatDDMMYYYY, formatPrice, service.price, service.name, client.name, professional.name, time, paymentMethod])
 
   // Intercept confirm event and redirect to WhatsApp
-  const handleConfirm = async (e?: React.FormEvent) => {
+  const handleConfirm = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!validate()) return
 
@@ -145,7 +146,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     } finally {
       setIsSubmitting(false)
     }
-  }
+  }, [validate, client.phone, buildWhatsAppUrl, onConfirmBooking, paymentMethod])
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -161,14 +162,16 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
           </p>
         </div>
 
-        <button
+        <motion.button
           type="button"
           onClick={onBack}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] text-zinc-300 hover:text-white hover:border-zinc-700 text-sm font-semibold transition-all cursor-pointer self-start sm:self-auto"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Modificar Fecha/Hora</span>
-        </button>
+        </motion.button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -372,12 +375,14 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* Option 1: Efectivo / Transferencia en el local */}
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => {
                       setPaymentMethod('Efectivo / Transferencia en el local')
                       setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
                     }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.97 }}
                     className={`flex items-start gap-3 p-4 min-h-[64px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                       paymentMethod === 'Efectivo / Transferencia en el local'
                         ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
@@ -414,15 +419,17 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                         Abonás al finalizar el servicio
                       </p>
                     </div>
-                  </button>
+                  </motion.button>
 
                   {/* Option 2: Mercado Pago */}
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => {
                       setPaymentMethod('Mercado Pago')
                       setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
                     }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.97 }}
                     className={`flex items-start gap-3 p-4 min-h-[64px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                       paymentMethod === 'Mercado Pago'
                         ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
@@ -459,7 +466,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                         Envío de dinero o QR
                       </p>
                     </div>
-                  </button>
+                  </motion.button>
                 </div>
                 {errors.paymentMethod && (
                   <p className="text-xs text-rose-400 mt-1.5">{errors.paymentMethod}</p>
@@ -468,10 +475,12 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
 
               {/* Booking Action */}
               <div className="pt-4 space-y-2.5">
-                <button
+                <motion.button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold text-base flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/35 transition-all duration-200 cursor-pointer"
+                  whileHover={{ scale: 1.015 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/35 transition-all duration-200 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -479,7 +488,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                     <MessageCircle className="w-5 h-5 fill-white stroke-none" />
                   )}
                   <span>Confirmar</span>
-                </button>
+                </motion.button>
                 <p className="text-center text-xs text-zinc-400">
                   Al confirmar, se abrirá WhatsApp con el resumen de tu reserva preformateado.
                 </p>
