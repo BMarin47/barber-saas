@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   Calendar as CalendarIcon,
@@ -57,6 +57,22 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
   onSelectTime,
 }) => {
   const carouselRef = useRef<HTMLDivElement>(null)
+  const timeSlotsRef = useRef<HTMLDivElement>(null)
+  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState<boolean>(false)
+
+  // Auto-scroll interno al seleccionar un día válido
+  const handleDaySelect = useCallback(
+    (dateStr: string) => {
+      onSelectDate(dateStr)
+      setIsCalendarCollapsed(true)
+
+      // Ejecutar scroll suave e inmediato hacia los horarios disponibles
+      setTimeout(() => {
+        timeSlotsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 50)
+    },
+    [onSelectDate]
+  )
 
   // Obtener fecha y hora actual en zona horaria Argentina (America/Argentina/Buenos_Aires, UTC-3)
   const argentinaNow = useMemo(() => getArgentinaNow(), [])
@@ -175,8 +191,31 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
         </div>
       </div>
 
+      {/* Barra compacta de día seleccionado para móviles cuando el calendario está minimizado */}
+      {isCalendarCollapsed && (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setIsCalendarCollapsed(false)}
+          className="sm:hidden p-3 rounded-2xl bg-zinc-900/60 border border-violet-500/30 flex items-center justify-between cursor-pointer hover:bg-zinc-900/80 transition-all shadow-md"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+              <CalendarIcon className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[10px] text-zinc-400 uppercase font-medium block">Día seleccionado</span>
+              <span className="text-xs font-bold text-white capitalize">{friendlyDateText}</span>
+            </div>
+          </div>
+          <span className="text-[11px] font-semibold text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+            <span>Cambiar día</span>
+          </span>
+        </div>
+      )}
+
       {/* Date Carousel Section */}
-      <div className="space-y-3">
+      <div className={`${isCalendarCollapsed ? 'hidden sm:block' : 'block'} space-y-3`}>
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-violet-400" />
@@ -219,7 +258,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
                 key={d.dateStr}
                 type="button"
                 disabled={isDisabled}
-                onClick={() => !isDisabled && onSelectDate(d.dateStr)}
+                onClick={() => !isDisabled && handleDaySelect(d.dateStr)}
                 whileHover={!isDisabled ? { scale: 1.02 } : undefined}
                 whileTap={!isDisabled ? { scale: 0.97 } : undefined}
                 className={`snap-start shrink-0 w-24 sm:w-28 py-3 px-2 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 border ${
@@ -274,8 +313,15 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
         </div>
       </div>
 
-      {/* Time Slots Section */}
-      <div className="space-y-6 pt-2">
+      {/* Time Slots Section con Aparición Instantánea y ref de auto-scroll */}
+      <motion.div
+        key={selectedDate}
+        ref={timeSlotsRef}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className="space-y-6 pt-2 scroll-mt-6"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/[0.08] pb-2 gap-2">
           <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-violet-400" />
@@ -404,7 +450,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
             </span>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Feedback de Selección y Auto-Avance */}
       <div className="pt-2 text-center">
