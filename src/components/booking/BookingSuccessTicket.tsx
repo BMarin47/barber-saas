@@ -12,6 +12,8 @@ import {
   RotateCcw,
   Sparkles,
   Share2,
+  Banknote,
+  CreditCard,
 } from 'lucide-react'
 import { TenantInfo, ServiceItem, ProfessionalItem, ClientDetails } from '@/types/booking'
 
@@ -23,6 +25,7 @@ interface BookingSuccessTicketProps {
   time: string
   client: ClientDetails
   bookingCode?: string
+  paymentMethod?: string
   onReset: () => void
   currency?: string
 }
@@ -35,6 +38,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
   time,
   client,
   bookingCode = 'GB-' + Math.floor(1000 + Math.random() * 9000),
+  paymentMethod,
   onReset,
   currency = 'ARS',
 }) => {
@@ -72,6 +76,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
     `💈 Profesional: ${professional.name}`,
     `📅 Fecha: ${formatDDMMYYYY(date)}`,
     `⏰ Hora: ${time}`,
+    ...(paymentMethod ? [`💵 Medio de Pago: ${paymentMethod}`] : []),
   ].join('\n')
 
   const whatsappUrl = `https://wa.me/5492604654255?text=${encodeURIComponent(whatsappMessage)}`
@@ -175,6 +180,20 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
               <p className="text-xs text-zinc-300 flex items-center gap-1.5 mt-0.5">
                 <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                 <span>{tenant.address}</span>
+              </p>
+            </div>
+          )}
+
+          {paymentMethod && (
+            <div className="pt-2">
+              <span className="text-xs text-zinc-500 block uppercase">Medio de Pago</span>
+              <p className="text-xs text-zinc-300 flex items-center gap-1.5 mt-0.5">
+                {paymentMethod === 'Mercado Pago' ? (
+                  <CreditCard className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                ) : (
+                  <Banknote className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                )}
+                <span>{paymentMethod}</span>
               </p>
             </div>
           )}

@@ -15,6 +15,8 @@ import {
   FileText,
   Shield,
   Loader2,
+  Banknote,
+  CreditCard,
 } from 'lucide-react'
 import {
   TenantInfo,
@@ -31,7 +33,7 @@ interface StepConfirmationProps {
   time: string // HH:MM
   client: ClientDetails
   onChangeClient: (field: keyof ClientDetails, value: string) => void
-  onConfirmBooking: (fullPhone?: string) => Promise<void>
+  onConfirmBooking: (fullPhone?: string, paymentMethod?: string) => Promise<void>
   onBack: () => void
   currency?: string
 }
@@ -49,7 +51,8 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   currency = 'ARS',
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errors, setErrors] = useState<{ name?: string; phone?: string }>({})
+  const [paymentMethod, setPaymentMethod] = useState<string>('')
+  const [errors, setErrors] = useState<{ name?: string; phone?: string; paymentMethod?: string }>({})
 
   // Format date nicely: "Miércoles 7 de Octubre, 2026"
   const formattedDate = React.useMemo(() => {
@@ -85,7 +88,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
 
   // Validate form
   const validate = () => {
-    const errs: { name?: string; phone?: string } = {}
+    const errs: { name?: string; phone?: string; paymentMethod?: string } = {}
     if (!client.name.trim()) {
       errs.name = 'Por favor ingresa tu nombre y apellido'
     }
@@ -94,6 +97,9 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       errs.phone = 'Por favor ingresa tu número de WhatsApp'
     } else if (cleanDigits.length < 6) {
       errs.phone = 'Ingresa un número de teléfono válido (ej: 260 465 4255)'
+    }
+    if (!paymentMethod.trim()) {
+      errs.paymentMethod = 'Por favor selecciona un método de pago'
     }
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -113,6 +119,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       `💈 Profesional: ${professional.name}`,
       `📅 Fecha: ${formattedDateDDMMYYYY}`,
       `⏰ Hora: ${time}`,
+      `💵 Medio de Pago: ${paymentMethod}`,
     ].join('\n')
 
     return `https://wa.me/${TARGET_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
@@ -131,7 +138,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       const whatsappUrl = buildWhatsAppUrl()
       // Open in a new tab immediately
       window.open(whatsappUrl, '_blank')
-      await onConfirmBooking(fullPhone)
+      await onConfirmBooking(fullPhone, paymentMethod)
     } catch (error) {
       console.error('Error confirming booking:', error)
     } finally {
@@ -355,6 +362,107 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   />
                   <FileText className="w-4 h-4 text-zinc-500 absolute left-4 top-3.5" />
                 </div>
+              </div>
+
+              {/* Payment Method Selector */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300 mb-2">
+                  Método de Pago <span className="text-violet-400">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Option 1: Efectivo en el local */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod('Efectivo en el local')
+                      setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
+                    }}
+                    className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                      paymentMethod === 'Efectivo en el local'
+                        ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
+                        : 'bg-zinc-900/30 border-white/5 hover:border-white/10 hover:bg-zinc-900/50'
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        paymentMethod === 'Efectivo en el local'
+                          ? 'bg-violet-500/20 text-violet-400'
+                          : 'bg-white/[0.04] text-zinc-400'
+                      }`}
+                    >
+                      <Banknote className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-white truncate">
+                          Efectivo en el local
+                        </span>
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                            paymentMethod === 'Efectivo en el local'
+                              ? 'border-violet-500 bg-violet-500'
+                              : 'border-zinc-700 bg-zinc-900'
+                          }`}
+                        >
+                          {paymentMethod === 'Efectivo en el local' && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-zinc-400 truncate mt-0.5">
+                        Abonás al finalizar tu turno
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Option 2: Mercado Pago */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod('Mercado Pago')
+                      setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
+                    }}
+                    className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                      paymentMethod === 'Mercado Pago'
+                        ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
+                        : 'bg-zinc-900/30 border-white/5 hover:border-white/10 hover:bg-zinc-900/50'
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        paymentMethod === 'Mercado Pago'
+                          ? 'bg-violet-500/20 text-violet-400'
+                          : 'bg-white/[0.04] text-zinc-400'
+                      }`}
+                    >
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-white truncate">
+                          Mercado Pago
+                        </span>
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                            paymentMethod === 'Mercado Pago'
+                              ? 'border-violet-500 bg-violet-500'
+                              : 'border-zinc-700 bg-zinc-900'
+                          }`}
+                        >
+                          {paymentMethod === 'Mercado Pago' && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-zinc-400 truncate mt-0.5">
+                        Transferencia o QR en el local
+                      </p>
+                    </div>
+                  </button>
+                </div>
+                {errors.paymentMethod && (
+                  <p className="text-xs text-rose-400 mt-1.5">{errors.paymentMethod}</p>
+                )}
               </div>
 
               {/* Booking Action */}

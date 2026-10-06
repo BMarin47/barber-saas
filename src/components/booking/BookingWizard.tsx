@@ -35,6 +35,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     email: '',
     notes: '',
   })
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('')
   const [isSuccess, setIsSuccess] = useState<boolean>(false)
   const [confirmedBookingCode, setConfirmedBookingCode] = useState<string>('')
 
@@ -66,10 +67,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     return false
   }
 
-  const handleConfirmBooking = async (phoneWithPrefix?: string) => {
+  const handleConfirmBooking = async (phoneWithPrefix?: string, paymentMethod?: string) => {
     // Generate mock booking code or send to API
     const code = 'GB-' + Math.floor(1000 + Math.random() * 9000)
     setConfirmedBookingCode(code)
+
+    if (paymentMethod) {
+      setSelectedPaymentMethod(paymentMethod)
+    }
 
     const phone = client.phone
     const fullPhone = phoneWithPrefix || ('549' + phone.replace(/\D/g, ''))
@@ -89,6 +94,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           clientPhone: fullPhone,
           clientEmail: client.email,
           clientNotes: client.notes,
+          paymentMethod: paymentMethod || selectedPaymentMethod,
           totalPrice: selectedService?.price,
         }),
       }).catch(() => {
@@ -106,6 +112,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setSelectedDate('')
     setSelectedTime('')
     setClient({ name: '', phone: '', email: '', notes: '' })
+    setSelectedPaymentMethod('')
     setIsSuccess(false)
   }
 
@@ -121,6 +128,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           time={selectedTime}
           client={client}
           bookingCode={confirmedBookingCode}
+          paymentMethod={selectedPaymentMethod}
           onReset={handleReset}
           currency={tenant.currency}
         />

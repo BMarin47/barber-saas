@@ -59,4 +59,5 @@ export interface BookingState {
   date: string // YYYY-MM-DD
   time: string // HH:MM
   client: ClientDetails
+  paymentMethod?: string
 }
