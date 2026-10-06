@@ -102,22 +102,27 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     return () => clearTimeout(timer)
   }, [])
 
-  // Auto-advance Step 1: when service + pro are both picked
+  // Auto-advance Step 1: when service is selected, advance to Step 2 after 400ms
   const handleSelectService = useCallback(
     (service: ServiceItem) => {
       setSelectedService(service)
-      if (selectedProfessional) {
-        scheduleAutoAdvance(2, 280)
+      if (!selectedProfessional && professionals.length > 0) {
+        setSelectedProfessional(professionals[0])
       }
+      scheduleAutoAdvance(2, 400)
     },
-    [selectedProfessional, scheduleAutoAdvance]
+    [selectedProfessional, professionals, scheduleAutoAdvance]
   )
+
+  const handleAdvanceToStep2 = useCallback(() => {
+    scheduleAutoAdvance(2, 0)
+  }, [scheduleAutoAdvance])
 
   const handleSelectProfessional = useCallback(
     (pro: ProfessionalItem) => {
       setSelectedProfessional(pro)
       if (selectedService) {
-        scheduleAutoAdvance(2, 280)
+        scheduleAutoAdvance(2, 400)
       }
     },
     [selectedService, scheduleAutoAdvance]
@@ -159,17 +164,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const canOpenPanel = useCallback(
     (panelNum: number): boolean => {
       if (panelNum === 1) return true
-      if (panelNum === 2) return !!selectedService && !!selectedProfessional
+      if (panelNum === 2) return !!selectedService
       if (panelNum === 3)
         return (
           !!selectedService &&
-          !!selectedProfessional &&
           !!selectedDate &&
           !!selectedTime
         )
       return false
     },
-    [selectedService, selectedProfessional, selectedDate, selectedTime]
+    [selectedService, selectedDate, selectedTime]
   )
 
   const handleTogglePanel = useCallback(
@@ -309,7 +313,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   }, [selectedDate])
 
-  const isStep1Complete = !!selectedService && !!selectedProfessional
+  const isStep1Complete = !!selectedService
   const isStep2Complete = !!selectedDate && !!selectedTime
   const isStep3Complete = !!client.name && !!client.phone
 
@@ -495,6 +499,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           selectedProfessional={selectedProfessional}
                           onSelectService={handleSelectService}
                           onSelectProfessional={handleSelectProfessional}
+                          onAdvanceToStep2={handleAdvanceToStep2}
                           currency={tenant.currency}
                         />
                       </div>
@@ -598,7 +603,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 </div>
 
                 <AnimatePresence initial={false}>
-                  {activePanel === 2 && selectedService && selectedProfessional && (
+                  {activePanel === 2 && selectedService && (
                     <motion.div
                       key="panel-2-content"
                       initial={{ height: 0, opacity: 0 }}
@@ -623,7 +628,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       <div className="overflow-y-auto max-h-[50vh] sm:max-h-[54vh] md:max-h-[58vh] p-4 sm:p-6 pr-2">
                         <StepDateTime
                           service={selectedService}
-                          professional={selectedProfessional}
+                          professional={selectedProfessional || professionals[0]}
                           selectedDate={selectedDate}
                           selectedTime={selectedTime}
                           onSelectDate={handleSelectDate}
@@ -732,7 +737,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 <AnimatePresence initial={false}>
                   {activePanel === 3 &&
                     selectedService &&
-                    selectedProfessional &&
                     selectedDate &&
                     selectedTime && (
                       <motion.div
@@ -760,7 +764,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           <StepConfirmation
                             tenant={tenant}
                             service={selectedService}
-                            professional={selectedProfessional}
+                            professional={selectedProfessional || professionals[0]}
                             date={selectedDate}
                             time={selectedTime}
                             client={client}

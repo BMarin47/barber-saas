@@ -20,6 +20,7 @@ interface StepServiceAndProfessionalProps {
   selectedProfessional: ProfessionalItem | null
   onSelectService: (service: ServiceItem) => void
   onSelectProfessional: (professional: ProfessionalItem) => void
+  onAdvanceToStep2?: () => void
   onNext?: () => void
   currency?: string
 }
@@ -56,8 +57,21 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
   selectedProfessional,
   onSelectService,
   onSelectProfessional,
+  onAdvanceToStep2,
   currency = 'ARS',
 }) => {
+  const handleServiceSelect = (service: ServiceItem) => {
+    // 1. Inmediatamente actualizar estado para reflejar tarjeta activa
+    onSelectService(service)
+
+    // 2. Retraso obligatorio de 400ms para percibir feedback visual antes de colapsar
+    if (onAdvanceToStep2) {
+      setTimeout(() => {
+        onAdvanceToStep2()
+      }, 400)
+    }
+  }
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -142,7 +156,7 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
                 variants={cardItemVariants}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => onSelectService(service)}
+                onClick={() => handleServiceSelect(service)}
                 className={`group relative rounded-3xl p-6 transition-all duration-200 cursor-pointer flex flex-col justify-between border backdrop-blur-md ${
                   isSelected
                     ? 'bg-zinc-900/80 border-violet-500 ring-2 ring-violet-500/80 shadow-[0_0_25px_rgba(139,92,246,0.25)]'
