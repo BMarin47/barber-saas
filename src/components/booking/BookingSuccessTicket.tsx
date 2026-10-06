@@ -164,7 +164,9 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
           <div className="pt-2 border-t border-white/[0.06]">
             <span className="text-xs text-zinc-500 block uppercase">Cliente</span>
             <p className="text-sm font-bold text-zinc-200">{client.name}</p>
-            <p className="text-xs text-zinc-400">{client.phone} {client.email ? `• ${client.email}` : ''}</p>
+            <p className="text-xs text-zinc-400">
+              {client.phone ? (client.phone.startsWith('+') ? client.phone : `+54 9 ${client.phone}`) : ''} {client.email ? `• ${client.email}` : ''}
+            </p>
           </div>
 
           {tenant.address && (

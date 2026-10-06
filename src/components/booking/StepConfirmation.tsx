@@ -31,7 +31,7 @@ interface StepConfirmationProps {
   time: string // HH:MM
   client: ClientDetails
   onChangeClient: (field: keyof ClientDetails, value: string) => void
-  onConfirmBooking: () => Promise<void>
+  onConfirmBooking: (fullPhone?: string) => Promise<void>
   onBack: () => void
   currency?: string
 }
@@ -89,10 +89,11 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     if (!client.name.trim()) {
       errs.name = 'Por favor ingresa tu nombre y apellido'
     }
-    if (!client.phone.trim()) {
+    const cleanDigits = client.phone.replace(/\D/g, '')
+    if (!cleanDigits) {
       errs.phone = 'Por favor ingresa tu número de WhatsApp'
-    } else if (client.phone.replace(/\D/g, '').length < 8) {
-      errs.phone = 'Ingresa un número de teléfono válido (mínimo 8 dígitos)'
+    } else if (cleanDigits.length < 6) {
+      errs.phone = 'Ingresa un número de teléfono válido (ej: 260 465 4255)'
     }
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -102,6 +103,8 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   const buildWhatsAppUrl = () => {
     const formattedDateDDMMYYYY = formatDDMMYYYY(date)
     const formattedPrice = formatPrice(service.price)
+    const phone = client.phone
+    const fullPhone = "549" + phone
 
     const message = [
       'Hola, quiero confirmar mi reserva en la barbería.',
@@ -120,12 +123,15 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     if (e) e.preventDefault()
     if (!validate()) return
 
+    const phone = client.phone
+    const fullPhone = "549" + phone
+
     setIsSubmitting(true)
     try {
       const whatsappUrl = buildWhatsAppUrl()
       // Open in a new tab immediately
       window.open(whatsappUrl, '_blank')
-      await onConfirmBooking()
+      await onConfirmBooking(fullPhone)
     } catch (error) {
       console.error('Error confirming booking:', error)
     } finally {
@@ -287,24 +293,33 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300 mb-1.5">
                   Teléfono / WhatsApp <span className="text-violet-400">*</span>
                 </label>
-                <div className="relative">
+                <div
+                  className={`flex items-stretch rounded-2xl bg-zinc-950/60 border transition-all overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/30 ${
+                    errors.phone
+                      ? 'border-rose-500'
+                      : 'border-white/[0.08] focus-within:border-violet-500'
+                  }`}
+                >
+                  {/* Prefijo fijo no editable */}
+                  <div className="flex items-center px-4 bg-white/[0.04] border-r border-white/[0.08] text-zinc-300 text-sm font-semibold select-none shrink-0">
+                    <span>+54 9</span>
+                  </div>
+
+                  {/* Input local limpio sin bordes propios */}
                   <input
                     type="tel"
                     required
                     value={client.phone}
                     onChange={(e) => onChangeClient('phone', e.target.value)}
-                    placeholder="Ej. +54 9 260 465 4255"
-                    className={`w-full px-4 py-3 pl-11 rounded-2xl bg-zinc-950/60 border text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all ${
-                      errors.phone ? 'border-rose-500' : 'border-white/[0.08] focus:border-violet-500'
-                    }`}
+                    placeholder="Ej: 260 465 4255"
+                    className="w-full px-4 py-3 bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none border-0"
                   />
-                  <Phone className="w-4 h-4 text-zinc-500 absolute left-4 top-3.5" />
                 </div>
                 {errors.phone ? (
                   <p className="text-xs text-rose-400 mt-1">{errors.phone}</p>
                 ) : (
                   <p className="text-[11px] text-zinc-500 mt-1">
-                    Incluye código de área para recibir el recordatorio automático
+                    Ingresa tu código de área y número (el prefijo +54 9 ya está incluido)
                   </p>
                 )}
               </div>

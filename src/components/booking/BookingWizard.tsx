@@ -66,10 +66,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     return false
   }
 
-  const handleConfirmBooking = async () => {
+  const handleConfirmBooking = async (phoneWithPrefix?: string) => {
     // Generate mock booking code or send to API
     const code = 'GB-' + Math.floor(1000 + Math.random() * 9000)
     setConfirmedBookingCode(code)
+
+    const phone = client.phone
+    const fullPhone = phoneWithPrefix || ('549' + phone.replace(/\D/g, ''))
 
     try {
       // Optional call to backend API if available
@@ -83,7 +86,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           date: selectedDate,
           time: selectedTime,
           clientName: client.name,
-          clientPhone: client.phone,
+          clientPhone: fullPhone,
           clientEmail: client.email,
           clientNotes: client.notes,
           totalPrice: selectedService?.price,
