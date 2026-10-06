@@ -54,8 +54,8 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
 
               {tenant.address && (
                 <p className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1">
-                  <MapPin className="w-3.5 h-3.5 text-zinc-500" />
-                  <span>{tenant.address}{tenant.city ? `, ${tenant.city}` : ''}</span>
+                  <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                  <span>{tenant.address}</span>
                 </p>
               )}
             </div>

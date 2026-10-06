@@ -227,7 +227,6 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   <div>
                     <span className="text-[10px] text-zinc-500 block uppercase font-medium">Ubicación</span>
                     <p className="text-xs text-zinc-300 font-medium">{tenant.address}</p>
-                    {tenant.city && <p className="text-[11px] text-zinc-500">{tenant.city}</p>}
                   </div>
                 </div>
               )}

@@ -172,8 +172,8 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
           {tenant.address && (
             <div className="pt-2">
               <span className="text-xs text-zinc-500 block uppercase">Dirección</span>
-              <p className="text-xs text-zinc-300 flex items-center gap-1 mt-0.5">
-                <MapPin className="w-3.5 h-3.5 text-violet-400" />
+              <p className="text-xs text-zinc-300 flex items-center gap-1.5 mt-0.5">
+                <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                 <span>{tenant.address}</span>
               </p>
             </div>
