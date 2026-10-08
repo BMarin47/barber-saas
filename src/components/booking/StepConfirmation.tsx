@@ -33,7 +33,7 @@ interface StepConfirmationProps {
   time: string // HH:MM
   client: ClientDetails
   onChangeClient: (field: keyof ClientDetails, value: string) => void
-  onConfirmBooking: (fullPhone?: string, paymentMethod?: string) => Promise<void>
+  onConfirmBooking: (fullPhone?: string, paymentMethod?: string) => Promise<string>
   onBack?: () => void
   currency?: string
   paymentMethod: string
@@ -119,10 +119,16 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     return Object.keys(errs).length === 0
   }, [client.name, client.phone, paymentMethod])
 
-  // Build the preformatted WhatsApp URL strictly according to requirements
-  const buildWhatsAppUrl = useCallback(() => {
+  // Build the preformatted WhatsApp URL with dynamic cancellation link
+  const buildWhatsAppUrl = useCallback((bookingId: string) => {
     const formattedDateDDMMYYYY = formatDDMMYYYY(date)
     const formattedPrice = formatPrice(service.price)
+
+    const baseUrl = typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : 'https://barber-saas-nu.vercel.app'
+
+    const cancellationUrl = `${baseUrl}/cancelar/${bookingId}`
 
     const message = [
       'Hola, quiero confirmar mi reserva en la barbería.',
@@ -132,12 +138,14 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       `📅 Fecha: ${formattedDateDDMMYYYY}`,
       `⏰ Hora: ${time}`,
       `💵 Medio de Pago: ${paymentMethod}`,
+      '',
+      `❌ Si necesitás cancelar, hacé clic acá: ${cancellationUrl}`,
     ].join('\n')
 
     return `https://wa.me/${TARGET_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
   }, [date, formatDDMMYYYY, formatPrice, service.price, service.name, client.name, professional.name, time, paymentMethod])
 
-  // Intercept confirm event and redirect to WhatsApp with micro-interaction animation
+  // Intercept confirm event: save to DB first to get unique ID, then open WhatsApp
   const handleConfirm = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!validate()) return
@@ -147,16 +155,16 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
 
     setConfirmStatus('processing')
     try {
-      // Simulate processing for 800ms
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      setConfirmStatus('success')
-      // Show bright success state for 450ms
-      await new Promise((resolve) => setTimeout(resolve, 450))
+      // 1. Guardar primero el turno en la DB para obtener un ID único
+      const bookingId = await onConfirmBooking(fullPhone, paymentMethod)
 
-      const whatsappUrl = buildWhatsAppUrl()
-      // Open in a new tab immediately
+      setConfirmStatus('success')
+      // Micro-interacción visual
+      await new Promise((resolve) => setTimeout(resolve, 350))
+
+      const whatsappUrl = buildWhatsAppUrl(bookingId)
+      // Abrir WhatsApp en nueva pestaña
       window.open(whatsappUrl, '_blank')
-      await onConfirmBooking(fullPhone, paymentMethod)
     } catch (error) {
       console.error('Error confirming booking:', error)
       setConfirmStatus('idle')

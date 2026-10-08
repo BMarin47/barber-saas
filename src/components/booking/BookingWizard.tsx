@@ -183,16 +183,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   )
 
   const handleConfirmBooking = useCallback(
-    async (phoneWithPrefix?: string, paymentMethod?: string) => {
-      const code = 'GB-' + Math.floor(1000 + Math.random() * 9000)
-      setConfirmedBookingCode(code)
-
+    async (phoneWithPrefix?: string, paymentMethod?: string): Promise<string> => {
       if (paymentMethod) {
         setSelectedPaymentMethod(paymentMethod)
       }
 
       const phone = client.phone
       const fullPhone = phoneWithPrefix || '549' + phone.replace(/\D/g, '')
+      let bookingId = 'bk_' + Math.random().toString(36).substring(2, 8)
 
       try {
         localStorage.setItem(
@@ -208,13 +206,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       }
 
       try {
-        await fetch('/api/bookings', {
+        const res = await fetch('/api/bookings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tenantId: tenant.id,
-            serviceId: selectedService?.id,
-            professionalId: selectedProfessional?.id,
+            serviceName: selectedService?.name,
+            professionalName: selectedProfessional?.name,
             date: selectedDate,
             time: selectedTime,
             clientName: client.name,
@@ -224,12 +222,22 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             paymentMethod: paymentMethod || selectedPaymentMethod,
             totalPrice: selectedService?.price,
           }),
-        }).catch(() => {
-          // Soft fail for mock mode
         })
+
+        if (res.ok) {
+          const data = await res.json()
+          if (data.bookingId) {
+            bookingId = data.bookingId
+          }
+        }
+      } catch (err) {
+        console.warn('Fallo al guardar reserva en backend, usando ID local:', err)
       } finally {
+        setConfirmedBookingCode(bookingId)
         setIsSuccess(true)
       }
+
+      return bookingId
     },
     [
       client,

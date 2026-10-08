@@ -1,13 +1,25 @@
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { createBooking, getBookings } from '@/lib/bookings'
+
+export async function GET() {
+  try {
+    const bookings = await getBookings()
+    return NextResponse.json({ success: true, bookings })
+  } catch (error) {
+    console.error('Error en GET /api/bookings:', error)
+    return NextResponse.json(
+      { error: 'Error al obtener las reservas' },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
     const {
-      tenantId,
-      serviceId,
-      professionalId,
+      serviceName,
+      professionalName,
       date,
       time,
       clientName,
@@ -15,50 +27,36 @@ export async function POST(req: Request) {
       clientEmail,
       clientNotes,
       totalPrice,
+      paymentMethod,
     } = body
 
-    if (!tenantId || !serviceId || !professionalId || !date || !time || !clientName || !clientPhone) {
+    if (!date || !time || !clientName || !clientPhone) {
       return NextResponse.json(
         { error: 'Faltan campos requeridos para la reserva' },
         { status: 400 }
       )
     }
 
-    // Try saving to database if configured
-    try {
-      const booking = await prisma.booking.create({
-        data: {
-          tenantId,
-          serviceId,
-          professionalId,
-          clientName,
-          clientPhone,
-          clientEmail: clientEmail || null,
-          clientNotes: clientNotes || null,
-          date: new Date(date),
-          startTime: time,
-          endTime: time, // En producción se calcula sumando la duración del servicio
-          totalPrice: totalPrice || 0,
-          status: 'PENDING',
-          paymentStatus: 'PENDING',
-        },
-      })
+    const booking = await createBooking({
+      clientName: clientName.trim(),
+      clientPhone: clientPhone.trim(),
+      serviceName: serviceName || 'Corte de Pelo',
+      professionalName: professionalName || 'Facundo "El Maestro" Rossi',
+      date,
+      time,
+      totalPrice: totalPrice ? Number(totalPrice) : 0,
+      paymentMethod: paymentMethod || 'Efectivo / Transferencia en el local',
+      clientEmail: clientEmail?.trim() || undefined,
+      clientNotes: clientNotes?.trim() || undefined,
+      status: 'CONFIRMED',
+    })
 
-      return NextResponse.json({
-        success: true,
-        bookingId: booking.id,
-        message: 'Reserva guardada correctamente en la base de datos',
-      })
-    } catch (dbError) {
-      console.warn('Prisma DB no conectada o en modo mock:', dbError)
-      // Return simulated success in case DB is not yet migrated/connected in dev
-      return NextResponse.json({
-        success: true,
-        mock: true,
-        bookingId: 'mock-' + Date.now(),
-        message: 'Reserva procesada en modo demostración',
-      })
-    }
+    return NextResponse.json({
+      success: true,
+      booking,
+      bookingId: booking.id,
+      message: 'Reserva guardada correctamente en la base de datos',
+    })
   } catch (error) {
     console.error('Error en POST /api/bookings:', error)
     return NextResponse.json(

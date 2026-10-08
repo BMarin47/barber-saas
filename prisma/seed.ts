@@ -3,109 +3,54 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Iniciando seed para BarberSaaS Multi-Tenant...')
+  console.log('🌱 Seeding turnos de demostración...')
+  const today = new Date().toISOString().split('T')[0]
 
-  // 1. Crear Tenant Principal
-  const tenant = await prisma.tenant.upsert({
-    where: { slug: 'golden-blade' },
-    update: {},
-    create: {
-      slug: 'golden-blade',
-      name: 'The Golden Blade Barber Club',
-      description: 'Barbería de alta gama especializada en cortes clásicos, fades quirúrgicos y ritual tradicional de barba a navaja con toallas calientes.',
-      phone: '+54 9 260 465-4255',
-      whatsappNumber: '5492604654255',
-      address: 'Av. Ballofet y Quiroga, San Rafael',
-      city: 'Mendoza',
-      primaryColor: '#F59E0B',
-      currency: 'ARS',
-    },
-  })
-
-  console.log(`✅ Tenant creado: ${tenant.name} (${tenant.slug})`)
-
-  // 2. Crear Categorías
-  const catCortes = await prisma.serviceCategory.upsert({
-    where: { tenantId_name: { tenantId: tenant.id, name: 'Cortes' } },
-    update: {},
-    create: { tenantId: tenant.id, name: 'Cortes', order: 1 },
-  })
-
-  const catBarba = await prisma.serviceCategory.upsert({
-    where: { tenantId_name: { tenantId: tenant.id, name: 'Barba' } },
-    update: {},
-    create: { tenantId: tenant.id, name: 'Barba', order: 2 },
-  })
-
-  const catCombos = await prisma.serviceCategory.upsert({
-    where: { tenantId_name: { tenantId: tenant.id, name: 'Combos VIP' } },
-    update: {},
-    create: { tenantId: tenant.id, name: 'Combos VIP', order: 3 },
-  })
-
-  // 3. Crear Servicios Clásicos
-  await prisma.service.createMany({
-    data: [
-      {
-        tenantId: tenant.id,
-        categoryId: catCortes.id,
-        name: 'Corte de Pelo',
-        description: 'Corte clásico o degradé moderno con tijera y máquina, lavado capilar y peinado con cera importada.',
-        price: 15000,
-        duration: 30,
-      },
-      {
-        tenantId: tenant.id,
-        categoryId: catCombos.id,
-        name: 'Corte y Barba',
-        description: 'Experiencia completa: corte de cabello + perfilado y arreglo tradicional de barba con toalla caliente y navaja.',
-        price: 18000,
-        duration: 60,
-      },
-      {
-        tenantId: tenant.id,
-        categoryId: catBarba.id,
-        name: 'Solo Barba',
-        description: 'Perfilado simétrico con navaja tradicional, doble toalla vaporizada con esencias y aceites nutritivos.',
-        price: 10000,
-        duration: 30,
-      },
-    ],
-    skipDuplicates: true,
-  })
-
-  console.log('✅ Servicios de catálogo creados.')
-
-  // 4. Crear Profesionales
-  await prisma.professional.createMany({
-    data: [
-      {
-        tenantId: tenant.id,
-        name: 'Facundo "El Maestro" Rossi',
-        role: 'Master Barber & Fundador',
-        bio: 'Más de 10 años de trayectoria esculpiendo estilos clásicos y degradés al milímetro.',
-        rating: 5.0,
-      },
-      {
-        tenantId: tenant.id,
-        name: 'Mateo "Fade King" Benítez',
-        role: 'Especialista en Skin Fade',
-        bio: 'Experto en cortes urbanos modernos, líneas definidas y freestyle.',
-        rating: 4.96,
-      },
-      {
-        tenantId: tenant.id,
-        name: 'Lucas "Beard Boss" Silva',
-        role: 'Especialista en Barbas Tradicionales',
-        bio: 'Dedicado al afeitado clásico a navaja abierta y cuidado integral de la piel.',
-        rating: 4.94,
-      },
-    ],
-    skipDuplicates: true,
-  })
-
-  console.log('✅ Profesionales creados.')
-  console.log('🎉 Seed completado con éxito.')
+  const count = await prisma.booking.count()
+  if (count === 0) {
+    await prisma.booking.createMany({
+      data: [
+        {
+          clientName: 'Lucas González',
+          clientPhone: '5492604654255',
+          serviceName: 'Corte y Barba',
+          professionalName: 'Facundo "El Maestro" Rossi',
+          date: today,
+          time: '16:00',
+          totalPrice: 18000,
+          status: 'CONFIRMED',
+          paymentMethod: 'Efectivo / Transferencia en el local',
+          clientNotes: 'Degradé medio y toalla caliente',
+        },
+        {
+          clientName: 'Martín Morales',
+          clientPhone: '5492604889911',
+          serviceName: 'Corte de Pelo',
+          professionalName: 'Mateo "Fade King" Benítez',
+          date: today,
+          time: '17:30',
+          totalPrice: 15000,
+          status: 'CONFIRMED',
+          paymentMethod: 'Mercado Pago',
+          clientNotes: 'Skin fade al ras',
+        },
+        {
+          clientName: 'Alejandro Domínguez',
+          clientPhone: '5492604332211',
+          serviceName: 'Solo Barba',
+          professionalName: 'Lucas "Beard Boss" Silva',
+          date: today,
+          time: '19:00',
+          totalPrice: 10000,
+          status: 'CONFIRMED',
+          paymentMethod: 'Efectivo / Transferencia en el local',
+        },
+      ],
+    })
+    console.log('✅ Turnos de demostración insertados con éxito.')
+  } else {
+    console.log(`ℹ️ La base de datos ya contiene ${count} reservas.`)
+  }
 }
 
 main()
