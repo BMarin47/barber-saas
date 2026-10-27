@@ -34,6 +34,11 @@ interface StepDateTimeProps {
   onSelectTime: (time: string) => void
   onNext?: () => void
   onBack?: () => void
+  tenantId?: string
+  /** Aviso a mostrar arriba de los horarios (ej: el turno elegido fue tomado por otro cliente). */
+  notice?: string
+  /** Se incrementa para forzar una nueva consulta de disponibilidad (ej: tras un 409). */
+  refreshKey?: number
 }
 
 interface DayOption {
@@ -55,10 +60,51 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
   selectedTime,
   onSelectDate,
   onSelectTime,
+  tenantId,
+  notice,
+  refreshKey = 0,
 }) => {
   const carouselRef = useRef<HTMLDivElement>(null)
   const timeSlotsRef = useRef<HTMLDivElement>(null)
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState<boolean>(false)
+  // Horarios ya reservados (cupo = 1 por barbero). Se consulta al servidor y se refresca solo.
+  const [bookedTimes, setBookedTimes] = useState<string[]>([])
+  const [availabilityError, setAvailabilityError] = useState<boolean>(false)
+
+  useEffect(() => {
+    if (!selectedDate) return
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const qs = new URLSearchParams({
+          date: selectedDate,
+          professional: professional?.name || '',
+        })
+        if (tenantId) qs.set('tenantId', tenantId)
+        const res = await fetch(`/api/availability?${qs.toString()}`, { cache: 'no-store' })
+        const data = await res.json()
+        if (!cancelled && data?.success && Array.isArray(data.bookedTimes)) {
+          setBookedTimes(data.bookedTimes)
+          setAvailabilityError(false)
+        } else if (!cancelled) {
+          setAvailabilityError(true)
+        }
+      } catch {
+        if (!cancelled) setAvailabilityError(true)
+      }
+    }
+
+    load()
+    const interval = setInterval(load, 15000)
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [selectedDate, professional?.name, tenantId, refreshKey])
 
   // Auto-scroll interno al seleccionar un día válido
   const handleDaySelect = useCallback(
@@ -155,6 +201,13 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
       onSelectTime('')
     }
   }, [selectedDate, availableSlotsList, selectedTime, onSelectTime])
+
+  // Si el horario elegido fue tomado por otro cliente mientras tanto, se deselecciona
+  useEffect(() => {
+    if (selectedTime && bookedTimes.includes(selectedTime)) {
+      onSelectTime('')
+    }
+  }, [bookedTimes, selectedTime, onSelectTime])
 
   const scrollCarousel = useCallback((direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -335,6 +388,22 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
           )}
         </div>
 
+        {notice && (
+          <div
+            role="alert"
+            className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{notice}</span>
+          </div>
+        )}
+        {availabilityError && (
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>No pudimos actualizar la disponibilidad en vivo. Si un horario ya estuviera ocupado, te avisaremos al confirmar.</span>
+          </div>
+        )}
+
         {/* Aviso si todos los turnos de hoy ya pasaron */}
         {allTodaySlotsPassed && (
           <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/[0.08] text-zinc-300 flex items-start gap-3">
@@ -376,24 +445,38 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
               {groupedSlots.morning.map((timeSlot) => {
                 const isSelected = selectedTime === timeSlot
                 const isPast = isPastTimeTodayArgentina(timeSlot, selectedDate)
+                const isBooked = !isPast && bookedTimes.includes(timeSlot)
+                const isBlocked = isPast || isBooked
 
                 return (
                   <motion.button
                     key={timeSlot}
                     type="button"
-                    disabled={isPast}
-                    onClick={() => !isPast && onSelectTime(timeSlot)}
-                    whileHover={!isPast ? { scale: 1.03 } : undefined}
-                    whileTap={!isPast ? { scale: 0.97 } : undefined}
-                    className={`py-3 px-2 rounded-2xl text-xs md:text-sm font-bold transition-all duration-200 border ${
+                    disabled={isBlocked}
+                    aria-disabled={isBlocked}
+                    onClick={() => !isBlocked && onSelectTime(timeSlot)}
+                    whileHover={!isBlocked ? { scale: 1.03 } : undefined}
+                    whileTap={!isBlocked ? { scale: 0.97 } : undefined}
+                    className={`py-2.5 px-2 rounded-2xl text-xs md:text-sm font-bold transition-all duration-200 border flex flex-col items-center gap-0.5 ${
                       isPast
                         ? 'opacity-40 cursor-not-allowed line-through text-zinc-600 bg-zinc-950/40 border-zinc-900/60 select-none'
+                        : isBooked
+                        ? 'opacity-50 cursor-not-allowed text-zinc-500 bg-zinc-950/60 border-rose-500/20 select-none pointer-events-none'
                         : isSelected
                         ? 'bg-violet-600 text-white border-violet-400 shadow-md shadow-violet-600/30 scale-[1.02] cursor-pointer'
                         : 'bg-white/[0.03] border-white/[0.08] text-zinc-200 hover:border-zinc-600 hover:bg-white/[0.05] cursor-pointer'
                     }`}
                   >
-                    {timeSlot} hs
+                    <span className={isBooked ? 'line-through' : ''}>{timeSlot} hs</span>
+                    {!isPast && (
+                      <span
+                        className={`text-[10px] font-semibold ${
+                          isBooked ? 'text-rose-400' : isSelected ? 'text-violet-100' : 'text-emerald-400'
+                        }`}
+                      >
+                        {isBooked ? 'Ya ocupado' : 'Disponible'}
+                      </span>
+                    )}
                   </motion.button>
                 )
               })}
@@ -416,24 +499,38 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
               {groupedSlots.afternoon.map((timeSlot) => {
                 const isSelected = selectedTime === timeSlot
                 const isPast = isPastTimeTodayArgentina(timeSlot, selectedDate)
+                const isBooked = !isPast && bookedTimes.includes(timeSlot)
+                const isBlocked = isPast || isBooked
 
                 return (
                   <motion.button
                     key={timeSlot}
                     type="button"
-                    disabled={isPast}
-                    onClick={() => !isPast && onSelectTime(timeSlot)}
-                    whileHover={!isPast ? { scale: 1.03 } : undefined}
-                    whileTap={!isPast ? { scale: 0.97 } : undefined}
-                    className={`py-3 px-2 rounded-2xl text-xs md:text-sm font-bold transition-all duration-200 border ${
+                    disabled={isBlocked}
+                    aria-disabled={isBlocked}
+                    onClick={() => !isBlocked && onSelectTime(timeSlot)}
+                    whileHover={!isBlocked ? { scale: 1.03 } : undefined}
+                    whileTap={!isBlocked ? { scale: 0.97 } : undefined}
+                    className={`py-2.5 px-2 rounded-2xl text-xs md:text-sm font-bold transition-all duration-200 border flex flex-col items-center gap-0.5 ${
                       isPast
                         ? 'opacity-40 cursor-not-allowed line-through text-zinc-600 bg-zinc-950/40 border-zinc-900/60 select-none'
+                        : isBooked
+                        ? 'opacity-50 cursor-not-allowed text-zinc-500 bg-zinc-950/60 border-rose-500/20 select-none pointer-events-none'
                         : isSelected
                         ? 'bg-violet-600 text-white border-violet-400 shadow-md shadow-violet-600/30 scale-[1.02] cursor-pointer'
                         : 'bg-white/[0.03] border-white/[0.08] text-zinc-200 hover:border-zinc-600 hover:bg-white/[0.05] cursor-pointer'
                     }`}
                   >
-                    {timeSlot} hs
+                    <span className={isBooked ? 'line-through' : ''}>{timeSlot} hs</span>
+                    {!isPast && (
+                      <span
+                        className={`text-[10px] font-semibold ${
+                          isBooked ? 'text-rose-400' : isSelected ? 'text-violet-100' : 'text-emerald-400'
+                        }`}
+                      >
+                        {isBooked ? 'Ya ocupado' : 'Disponible'}
+                      </span>
+                    )}
                   </motion.button>
                 )
               })}

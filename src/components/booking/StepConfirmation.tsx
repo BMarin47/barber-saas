@@ -24,6 +24,12 @@ import {
   ProfessionalItem,
   ClientDetails,
 } from '@/types/booking'
+import {
+  calculatePricing,
+  PAYMENT_METHOD_CASH,
+  PAYMENT_METHOD_MP,
+  CASH_DISCOUNT_PERCENT,
+} from '@/lib/pricing'
 
 interface StepConfirmationProps {
   tenant: TenantInfo
@@ -63,6 +69,13 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   hasAutofilledData = false,
 }) => {
   const [errors, setErrors] = useState<{ name?: string; phone?: string; paymentMethod?: string }>({})
+  const [submitError, setSubmitError] = useState<string>('')
+
+  // Total con descuento dinámico: 10% OFF sólo si elige efectivo o transferencia en local
+  const pricing = useMemo(
+    () => calculatePricing(service.price, paymentMethod ? paymentMethod : PAYMENT_METHOD_MP),
+    [service.price, paymentMethod]
+  )
 
   // Format date nicely: "Miércoles 7 de Octubre, 2026"
   const formattedDate = useMemo(() => {
@@ -122,7 +135,10 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   // Build the preformatted WhatsApp URL with dynamic cancellation link
   const buildWhatsAppUrl = useCallback((bookingId: string) => {
     const formattedDateDDMMYYYY = formatDDMMYYYY(date)
-    const formattedPrice = formatPrice(service.price)
+    const formattedPrice =
+      pricing.discountAmount > 0
+        ? `${formatPrice(pricing.finalAmount)} (${pricing.discountPercent}% OFF, antes ${formatPrice(pricing.originalAmount)})`
+        : formatPrice(pricing.finalAmount)
 
     const baseUrl = typeof window !== 'undefined' && window.location.origin
       ? window.location.origin
@@ -143,7 +159,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     ].join('\n')
 
     return `https://wa.me/${TARGET_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
-  }, [date, formatDDMMYYYY, formatPrice, service.price, service.name, client.name, professional.name, time, paymentMethod])
+  }, [date, formatDDMMYYYY, formatPrice, pricing, service.name, client.name, professional.name, time, paymentMethod])
 
   // Intercept confirm event: save to DB first to get unique ID, then open WhatsApp
   const handleConfirm = useCallback(async (e?: React.FormEvent) => {
@@ -154,6 +170,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     const fullPhone = "549" + phone
 
     setConfirmStatus('processing')
+    setSubmitError('')
     try {
       // 1. Guardar primero el turno en la DB para obtener un ID único
       const bookingId = await onConfirmBooking(fullPhone, paymentMethod)
@@ -167,6 +184,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       window.open(whatsappUrl, '_blank')
     } catch (error) {
       console.error('Error confirming booking:', error)
+      setSubmitError(error instanceof Error ? error.message : 'No se pudo confirmar la reserva.')
       setConfirmStatus('idle')
     }
   }, [validate, client.phone, buildWhatsAppUrl, onConfirmBooking, paymentMethod, setConfirmStatus])
@@ -278,11 +296,23 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
               <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between">
                 <div>
                   <span className="text-xs text-zinc-400 block">Total a pagar:</span>
-                  <span className="text-[11px] text-emerald-400 font-medium">En el local al finalizar</span>
+                  <span className="text-[11px] text-emerald-400 font-medium">
+                    {paymentMethod === PAYMENT_METHOD_MP ? 'Pago online con Mercado Pago' : 'En el local al finalizar'}
+                  </span>
                 </div>
                 <div className="text-right">
+                  {pricing.discountAmount > 0 && (
+                    <div className="flex items-center justify-end gap-2 mb-0.5">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-emerald-950 tracking-wide">
+                        {pricing.discountPercent}% OFF
+                      </span>
+                      <span className="text-sm text-zinc-500 line-through font-medium">
+                        {formatPrice(pricing.originalAmount)}
+                      </span>
+                    </div>
+                  )}
                   <span className="text-2xl font-black text-white tracking-tight">
-                    {formatPrice(service.price)}
+                    {formatPrice(pricing.finalAmount)}
                   </span>
                 </div>
               </div>
@@ -413,24 +443,24 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   Método de Pago <span className="text-violet-400">*</span>
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Option 1: Efectivo / Transferencia en el local */}
+                  {/* Option 1: Efectivo o transferencia en local */}
                   <motion.button
                     type="button"
                     onClick={() => {
-                      onSelectPaymentMethod('Efectivo / Transferencia en el local')
+                      onSelectPaymentMethod(PAYMENT_METHOD_CASH)
                       setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
                     }}
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.97 }}
                     className={`flex items-start gap-3 p-4 min-h-[64px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
-                      paymentMethod === 'Efectivo / Transferencia en el local'
+                      paymentMethod === PAYMENT_METHOD_CASH
                         ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
                         : 'bg-zinc-900/30 border-white/5 hover:border-white/10 hover:bg-zinc-900/50'
                     }`}
                   >
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                        paymentMethod === 'Efectivo / Transferencia en el local'
+                        paymentMethod === PAYMENT_METHOD_CASH
                           ? 'bg-violet-500/20 text-violet-400'
                           : 'bg-white/[0.04] text-zinc-400'
                       }`}
@@ -440,16 +470,16 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                     <div className="flex-1 min-w-0 pr-0.5">
                       <div className="flex items-start justify-between gap-1.5">
                         <span className="text-sm font-bold text-white whitespace-normal break-words leading-tight">
-                          Efectivo / Transferencia en el local
+                          Efectivo o transferencia en local
                         </span>
                         <div
                           className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                            paymentMethod === 'Efectivo / Transferencia en el local'
+                            paymentMethod === PAYMENT_METHOD_CASH
                               ? 'border-violet-500 bg-violet-500'
                               : 'border-zinc-700 bg-zinc-900'
                           }`}
                         >
-                          {paymentMethod === 'Efectivo / Transferencia en el local' && (
+                          {paymentMethod === PAYMENT_METHOD_CASH && (
                             <div className="w-1.5 h-1.5 rounded-full bg-white" />
                           )}
                         </div>
@@ -457,6 +487,9 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                       <p className="text-xs text-zinc-400 whitespace-normal break-words leading-tight mt-1">
                         Abonás al finalizar el servicio
                       </p>
+                      <span className="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-emerald-950 tracking-wide">
+                        {CASH_DISCOUNT_PERCENT}% OFF
+                      </span>
                     </div>
                   </motion.button>
 
@@ -464,20 +497,20 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   <motion.button
                     type="button"
                     onClick={() => {
-                      onSelectPaymentMethod('Mercado Pago')
+                      onSelectPaymentMethod(PAYMENT_METHOD_MP)
                       setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
                     }}
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.97 }}
                     className={`flex items-start gap-3 p-4 min-h-[64px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
-                      paymentMethod === 'Mercado Pago'
+                      paymentMethod === PAYMENT_METHOD_MP
                         ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
                         : 'bg-zinc-900/30 border-white/5 hover:border-white/10 hover:bg-zinc-900/50'
                     }`}
                   >
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                        paymentMethod === 'Mercado Pago'
+                        paymentMethod === PAYMENT_METHOD_MP
                           ? 'bg-violet-500/20 text-violet-400'
                           : 'bg-white/[0.04] text-zinc-400'
                       }`}
@@ -491,12 +524,12 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                         </span>
                         <div
                           className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                            paymentMethod === 'Mercado Pago'
+                            paymentMethod === PAYMENT_METHOD_MP
                               ? 'border-violet-500 bg-violet-500'
                               : 'border-zinc-700 bg-zinc-900'
                           }`}
                         >
-                          {paymentMethod === 'Mercado Pago' && (
+                          {paymentMethod === PAYMENT_METHOD_MP && (
                             <div className="w-1.5 h-1.5 rounded-full bg-white" />
                           )}
                         </div>
@@ -511,6 +544,12 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   <p className="text-xs text-rose-400 mt-1.5">{errors.paymentMethod}</p>
                 )}
               </div>
+
+              {submitError && (
+                <div role="alert" className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300">
+                  {submitError}
+                </div>
+              )}
 
               {/* Booking Action */}
               <div className="pt-4 space-y-2.5">
@@ -530,22 +569,29 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   {confirmStatus === 'processing' ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Procesando...</span>
+                      <span>{paymentMethod === PAYMENT_METHOD_MP ? 'Generando Pago y Reserva...' : 'Procesando...'}</span>
                     </>
                   ) : confirmStatus === 'success' ? (
                     <>
                       <CheckCircle2 className="w-5 h-5 text-white" />
                       <span>✅ ¡Reserva Lista!</span>
                     </>
+                  ) : paymentMethod === PAYMENT_METHOD_MP ? (
+                    <>
+                      <CreditCard className="w-5 h-5" />
+                      <span>Confirmar y Pagar con Mercado Pago</span>
+                    </>
                   ) : (
                     <>
                       <MessageCircle className="w-5 h-5 fill-white stroke-none" />
-                      <span>Confirmar</span>
+                      <span>Confirmar Reserva</span>
                     </>
                   )}
                 </motion.button>
                 <p className="text-center text-xs text-zinc-400">
-                  Al confirmar, se abrirá WhatsApp con el resumen de tu reserva preformateado.
+                  {paymentMethod === PAYMENT_METHOD_MP
+                    ? 'Al confirmar, se generará tu comprobante y el link de pago seguro de Mercado Pago.'
+                    : 'Al confirmar, se abrirá WhatsApp con el resumen de tu reserva preformateado.'}
                 </p>
               </div>
             </form>

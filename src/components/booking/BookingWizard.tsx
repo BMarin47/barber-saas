@@ -22,6 +22,7 @@ import { StepServiceAndProfessional } from './StepServiceAndProfessional'
 import { StepDateTime } from './StepDateTime'
 import { StepConfirmation } from './StepConfirmation'
 import { BookingSuccessTicket } from './BookingSuccessTicket'
+import { calculatePricing, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
 
 interface BookingWizardProps {
   tenant: TenantInfo
@@ -50,9 +51,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   })
   const [hasAutofilledData, setHasAutofilledData] = useState<boolean>(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('')
+  const [paymentLink, setPaymentLink] = useState<string | null>(null)
   const [confirmStatus, setConfirmStatus] = useState<'idle' | 'processing' | 'success'>('idle')
   const [isSuccess, setIsSuccess] = useState<boolean>(false)
   const [confirmedBookingCode, setConfirmedBookingCode] = useState<string>('')
+  const [slotNotice, setSlotNotice] = useState<string>('')
+  const [refreshKey, setRefreshKey] = useState<number>(0)
 
   // Panel DOM refs for smart auto-scroll
   const panel1Ref = useRef<HTMLDivElement>(null)
@@ -184,13 +188,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   const handleConfirmBooking = useCallback(
     async (phoneWithPrefix?: string, paymentMethod?: string): Promise<string> => {
-      if (paymentMethod) {
-        setSelectedPaymentMethod(paymentMethod)
-      }
+      const effectivePaymentMethod = normalizePaymentMethod(paymentMethod || selectedPaymentMethod)
+      setSelectedPaymentMethod(effectivePaymentMethod)
+      setSlotNotice('')
 
       const phone = client.phone
       const fullPhone = phoneWithPrefix || '549' + phone.replace(/\D/g, '')
-      let bookingId = 'bk_' + Math.random().toString(36).substring(2, 8)
 
       try {
         localStorage.setItem(
@@ -205,8 +208,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         // ignore
       }
 
+      let res: Response
       try {
-        const res = await fetch('/api/bookings', {
+        res = await fetch('/api/bookings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -219,29 +223,61 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             clientPhone: fullPhone,
             clientEmail: client.email,
             clientNotes: client.notes,
-            paymentMethod: paymentMethod || selectedPaymentMethod,
-            totalPrice: selectedService?.price,
+            paymentMethod: effectivePaymentMethod,
+            // Sólo informativo: el servidor recalcula el total (con descuento) por su cuenta.
+            totalPrice: calculatePricing(selectedService?.price || 0, effectivePaymentMethod).finalAmount,
           }),
         })
-
-        if (res.ok) {
-          const data = await res.json()
-          if (data.bookingId) {
-            bookingId = data.bookingId
-          }
-        }
-      } catch (err) {
-        console.warn('Fallo al guardar reserva en backend, usando ID local:', err)
-      } finally {
-        setConfirmedBookingCode(bookingId)
-        setIsSuccess(true)
+      } catch {
+        throw new Error('No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.')
       }
 
+      const data = await res.json().catch(() => ({}))
+
+      if (res.status === 409) {
+        // Otro cliente reservó ese horario antes: volver a elegir horario con disponibilidad fresca
+        const msg = 'Ese horario acaba de ser reservado por otra persona. Elegí otro horario disponible.'
+        setSlotNotice(msg)
+        setSelectedTime('')
+        setRefreshKey((k) => k + 1)
+        setActivePanel(2)
+        throw new Error(msg)
+      }
+
+      if (!res.ok || !data.bookingId) {
+        throw new Error(data.error || 'No se pudo guardar la reserva. Intentá nuevamente.')
+      }
+
+      const bookingId: string = data.bookingId
+
+      // Si el cliente seleccionó Mercado Pago, generar la preferencia de pago.
+      // El monto lo toma el servidor desde la reserva guardada (ya con el descuento aplicado).
+      if (effectivePaymentMethod === PAYMENT_METHOD_MP) {
+        try {
+          const mpRes = await fetch('/api/payments/create-preference', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId, tenantSlug: tenant.slug }),
+          })
+          if (mpRes.ok) {
+            const mpData = await mpRes.json()
+            if (mpData.success && mpData.initPoint) {
+              setPaymentLink(mpData.initPoint)
+            }
+          }
+        } catch (mpErr) {
+          console.warn('Error al conectar con Mercado Pago:', mpErr)
+        }
+      }
+
+      setConfirmedBookingCode(bookingId)
+      setIsSuccess(true)
       return bookingId
     },
     [
       client,
       tenant.id,
+      tenant.slug,
       selectedService,
       selectedProfessional,
       selectedDate,
@@ -258,6 +294,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setSelectedTime('')
     setClient({ name: '', phone: '', email: '', notes: '' })
     setSelectedPaymentMethod('')
+    setPaymentLink(null)
     setConfirmStatus('idle')
     setIsSuccess(false)
   }, [])
@@ -335,6 +372,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               client={client}
               bookingCode={confirmedBookingCode}
               paymentMethod={selectedPaymentMethod}
+              paymentLink={paymentLink}
               onReset={handleReset}
               currency={tenant.currency}
             />
@@ -631,6 +669,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           selectedTime={selectedTime}
                           onSelectDate={handleSelectDate}
                           onSelectTime={handleSelectTime}
+                          tenantId={tenant.id}
+                          notice={slotNotice}
+                          refreshKey={refreshKey}
                         />
                       </div>
                     </motion.div>

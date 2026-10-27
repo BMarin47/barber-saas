@@ -1,23 +1,48 @@
 import { NextResponse } from 'next/server'
-import { createBooking, getBookings } from '@/lib/bookings'
+import { createBooking, getBookings, SlotTakenError } from '@/lib/bookings'
+import { calculatePricing, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
+import { sendBookingConfirmationEmails, type EmailSendResult } from '@/lib/email'
+import { mockServices, mockTenant } from '@/data/mock-tenant'
+import { generateTimeSlots } from '@/utils/generateTimeSlots'
+import { getAdminSession } from '@/lib/auth'
 
 export async function GET() {
   try {
-    const bookings = await getBookings()
-    return NextResponse.json({ success: true, bookings })
+    // 1. Proteger ruta privada: Verificar sesión de administrador válida
+    const session = await getAdminSession()
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No autorizado. Se requiere inicio de sesión de administrador.',
+        },
+        { status: 401 }
+      )
+    }
+
+    // 2. Aislamiento multi-tenant: el admin sólo ve las reservas de SU barbería (tenant de la sesión);
+    //    el tenantId de la query string se ignora para impedir lecturas cruzadas.
+    const tenantParam = session.tenantId
+
+    const bookings = await getBookings(tenantParam)
+    return NextResponse.json({ success: true, bookings, tenantId: tenantParam })
   } catch (error) {
     console.error('Error en GET /api/bookings:', error)
     return NextResponse.json(
-      { error: 'Error al obtener las reservas' },
+      { success: false, error: 'Error al obtener las reservas' },
       { status: 500 }
     )
   }
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
     const {
+      tenantId,
       serviceName,
       professionalName,
       date,
@@ -26,41 +51,112 @@ export async function POST(req: Request) {
       clientPhone,
       clientEmail,
       clientNotes,
-      totalPrice,
       paymentMethod,
     } = body
 
     if (!date || !time || !clientName || !clientPhone) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos para la reserva' },
+        { success: false, error: 'Faltan campos requeridos para la reserva' },
         { status: 400 }
       )
     }
 
-    const booking = await createBooking({
-      clientName: clientName.trim(),
-      clientPhone: clientPhone.trim(),
-      serviceName: serviceName || 'Corte de Pelo',
-      professionalName: professionalName || 'Facundo "El Maestro" Rossi',
-      date,
-      time,
-      totalPrice: totalPrice ? Number(totalPrice) : 0,
-      paymentMethod: paymentMethod || 'Efectivo / Transferencia en el local',
-      clientEmail: clientEmail?.trim() || undefined,
-      clientNotes: clientNotes?.trim() || undefined,
-      status: 'CONFIRMED',
-    })
+    if (!DATE_RE.test(String(date)) || !generateTimeSlots(String(date), true).includes(String(time))) {
+      return NextResponse.json(
+        { success: false, code: 'INVALID_SLOT', error: 'El horario elegido no es válido o ya venció' },
+        { status: 400 }
+      )
+    }
+
+    const cleanEmail = typeof clientEmail === 'string' ? clientEmail.trim() : ''
+    if (cleanEmail && !EMAIL_RE.test(cleanEmail)) {
+      return NextResponse.json(
+        { success: false, error: 'El correo electrónico no es válido' },
+        { status: 400 }
+      )
+    }
+
+    // El precio NUNCA se toma del navegador: se busca el servicio en el catálogo del servidor
+    // y se recalcula el descuento según el método de pago.
+    const service = mockServices.find((s) => s.name === serviceName)
+    if (!service) {
+      return NextResponse.json(
+        { success: false, error: 'El servicio seleccionado no existe' },
+        { status: 400 }
+      )
+    }
+    const method = normalizePaymentMethod(paymentMethod)
+    const pricing = calculatePricing(service.price, method)
+    const resolvedTenantId = tenantId?.trim() || mockTenant.id
+
+    let booking
+    try {
+      booking = await createBooking({
+        tenantId: resolvedTenantId,
+        clientName: String(clientName).trim(),
+        clientPhone: String(clientPhone).trim(),
+        serviceName: service.name,
+        professionalName: professionalName || undefined,
+        date,
+        time,
+        totalPrice: pricing.finalAmount, // monto FINAL con descuento
+        paymentMethod: method,
+        paymentStatus: 'PENDING',
+        clientEmail: cleanEmail || undefined,
+        clientNotes: clientNotes?.trim() || undefined,
+        status: 'CONFIRMED',
+      })
+    } catch (err) {
+      if (err instanceof SlotTakenError) {
+        return NextResponse.json(
+          { success: false, code: 'SLOT_TAKEN', error: err.message },
+          { status: 409 }
+        )
+      }
+      throw err
+    }
+
+    // Correos: aislados con try/catch, un fallo de Resend nunca revierte la reserva.
+    let emailNotification: EmailSendResult = { sent: false, customerSent: false, adminSent: false, errors: [] }
+    try {
+      const origin = (process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin).replace(/\/$/, '')
+      emailNotification = await sendBookingConfirmationEmails({
+        bookingId: booking.id as string,
+        tenantName: mockTenant.name,
+        tenantAddress: mockTenant.address,
+        clientName: booking.clientName,
+        clientPhone: booking.clientPhone,
+        clientEmail: booking.clientEmail,
+        serviceName: booking.serviceName,
+        professionalName: booking.professionalName || '',
+        date: booking.date,
+        time: booking.time,
+        paymentMethod: method,
+        originalAmount: pricing.originalAmount,
+        discountPercent: pricing.discountPercent,
+        discountAmount: pricing.discountAmount,
+        finalAmount: pricing.finalAmount,
+        notes: booking.clientNotes,
+        cancelUrl: `${origin}/cancelar/${booking.id}`,
+      })
+    } catch (emailErr) {
+      console.error('Error enviando correos de confirmación:', emailErr)
+      emailNotification.errors.push(emailErr instanceof Error ? emailErr.message : String(emailErr))
+    }
 
     return NextResponse.json({
       success: true,
       booking,
       bookingId: booking.id,
+      pricing,
+      requiresOnlinePayment: method === PAYMENT_METHOD_MP,
+      emailNotification: { sent: emailNotification.sent, errors: emailNotification.errors },
       message: 'Reserva guardada correctamente en la base de datos',
     })
   } catch (error) {
     console.error('Error en POST /api/bookings:', error)
     return NextResponse.json(
-      { error: 'Error al procesar la reserva' },
+      { success: false, error: 'Error al procesar la reserva' },
       { status: 500 }
     )
   }

@@ -17,6 +17,7 @@ import {
   CreditCard,
 } from 'lucide-react'
 import { TenantInfo, ServiceItem, ProfessionalItem, ClientDetails } from '@/types/booking'
+import { calculatePricing, PAYMENT_METHOD_MP } from '@/lib/pricing'
 
 interface BookingSuccessTicketProps {
   tenant: TenantInfo
@@ -27,6 +28,7 @@ interface BookingSuccessTicketProps {
   client: ClientDetails
   bookingCode?: string
   paymentMethod?: string
+  paymentLink?: string | null
   onReset: () => void
   currency?: string
 }
@@ -40,6 +42,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
   client,
   bookingCode = 'GB-5420',
   paymentMethod,
+  paymentLink,
   onReset,
   currency = 'ARS',
 }) => {
@@ -64,6 +67,9 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
     }).format(price)
   }
 
+  // Total final (con 10% OFF si el pago es presencial), calculado con la misma regla que el servidor
+  const pricing = calculatePricing(service.price, paymentMethod || PAYMENT_METHOD_MP)
+
   const formatDDMMYYYY = (dateStr: string): string => {
     if (!dateStr) return ''
     const parts = dateStr.split('-')
@@ -77,11 +83,12 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
   const whatsappMessage = [
     'Hola, quiero confirmar mi reserva en la barbería.',
     `👤 Cliente: ${client.name.trim()}`,
-    `✂️ Servicio: ${service.name} - ${formatPrice(service.price)}`,
+    `✂️ Servicio: ${service.name} - ${formatPrice(pricing.finalAmount)}${pricing.discountAmount > 0 ? ` (${pricing.discountPercent}% OFF)` : ''}`,
     `💈 Profesional: ${professional.name}`,
     `📅 Fecha: ${formatDDMMYYYY(date)}`,
     `⏰ Hora: ${time}`,
     ...(paymentMethod ? [`💵 Medio de Pago: ${paymentMethod}`] : []),
+    ...(paymentLink ? [`💳 Link de Pago Mercado Pago: ${paymentLink}`] : []),
   ].join('\n')
 
   const whatsappUrl = `https://wa.me/5492604654255?text=${encodeURIComponent(whatsappMessage)}`
@@ -216,11 +223,34 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
           <div>
             <span className="text-xs text-zinc-500 block uppercase">Total a abonar</span>
             <span className="text-2xl font-black text-violet-400 tracking-tight">
-              {formatPrice(service.price)}
+              {pricing.discountAmount > 0 && (
+                <span className="flex items-center gap-2 mb-0.5">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-emerald-950 tracking-wide">
+                    {pricing.discountPercent}% OFF
+                  </span>
+                  <span className="text-sm text-zinc-500 line-through font-medium">
+                    {formatPrice(pricing.originalAmount)}
+                  </span>
+                </span>
+              )}
+              {formatPrice(pricing.finalAmount)}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
+            {paymentLink && (
+              <motion.a
+                href={paymentLink}
+                target="_blank"
+                rel="noreferrer"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all shadow-md shadow-violet-600/30"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>Pagar Online</span>
+              </motion.a>
+            )}
             <motion.button
               type="button"
               onClick={handleShare}
