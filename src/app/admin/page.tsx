@@ -2,32 +2,32 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   Scissors,
   Calendar,
   Clock,
-  User,
-  Phone,
   Search,
   Lock,
   LogOut,
   RefreshCw,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   QrCode,
   DollarSign,
   CalendarDays,
   ExternalLink,
   Copy,
   Check,
-  ChevronRight,
   ShieldAlert,
+  CreditCard,
+  Banknote,
+  Phone,
 } from 'lucide-react'
 
 interface Booking {
   id: string
+  tenantId?: string
   clientName: string
   clientPhone: string
   serviceName: string
@@ -37,20 +37,22 @@ interface Booking {
   status: string
   totalPrice?: number
   paymentMethod?: string
+  paymentStatus?: string
+  paymentId?: string
+  preferenceId?: string
   clientNotes?: string
   createdAt?: string
 }
-
-const AUTH_STORAGE_KEY = 'barber_admin_authenticated'
 
 export default function AdminDashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [passwordInput, setPasswordInput] = useState<string>('')
   const [authError, setAuthError] = useState<string>('')
   const [authLoading, setAuthLoading] = useState<boolean>(false)
+  const [verifyingSession, setVerifyingSession] = useState<boolean>(true)
 
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
+  const [loading, setLoading] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'all' | 'cancelled'>('today')
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
@@ -58,20 +60,36 @@ export default function AdminDashboardPage() {
 
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], [])
 
-  // Check initial authentication
+  // Verificar sesión activa segura en el servidor
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedAuth = sessionStorage.getItem(AUTH_STORAGE_KEY)
-      if (savedAuth === 'true') {
-        setIsAuthenticated(true)
+    async function checkSession() {
+      try {
+        setVerifyingSession(true)
+        const res = await fetch('/api/admin/me')
+        const data = await res.json()
+        if (data.authenticated) {
+          setIsAuthenticated(true)
+        } else {
+          setIsAuthenticated(false)
+        }
+      } catch {
+        setIsAuthenticated(false)
+      } finally {
+        setVerifyingSession(false)
       }
     }
+    checkSession()
   }, [])
 
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch('/api/bookings')
+      if (res.status === 401) {
+        setIsAuthenticated(false)
+        setAuthError('Tu sesión ha expirado. Por favor ingresa nuevamente.')
+        return
+      }
       const data = await res.json()
       if (data.success && Array.isArray(data.bookings)) {
         setBookings(data.bookings)
@@ -104,7 +122,7 @@ export default function AdminDashboardPage() {
 
       if (data.success) {
         setIsAuthenticated(true)
-        sessionStorage.setItem(AUTH_STORAGE_KEY, 'true')
+        setPasswordInput('')
       } else {
         setAuthError(data.error || 'Contraseña incorrecta')
       }
@@ -116,10 +134,16 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleLogout = () => {
-    setIsAuthenticated(false)
-    sessionStorage.removeItem(AUTH_STORAGE_KEY)
-    setPasswordInput('')
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' })
+    } catch {
+      // Ignorar
+    } finally {
+      setIsAuthenticated(false)
+      setPasswordInput('')
+      setBookings([])
+    }
   }
 
   const handleCancelBooking = async (id: string) => {
@@ -184,17 +208,33 @@ export default function AdminDashboardPage() {
     const todayConfirmed = todayBookings.filter((b) => b.status !== 'CANCELLED' && b.status !== 'Cancelado')
     const todayRevenue = todayConfirmed.reduce((sum, b) => sum + (b.totalPrice || 0), 0)
     const totalCancelled = bookings.filter((b) => b.status === 'CANCELLED' || b.status === 'Cancelado').length
+    const paidOnlineCount = bookings.filter((b) => b.paymentStatus === 'PAID').length
 
     return {
       todayCount: todayConfirmed.length,
       todayRevenue,
       totalCount: bookings.length,
       cancelledCount: totalCancelled,
+      paidOnlineCount,
     }
   }, [bookings, todayStr])
 
   // ==========================================
-  // PANTALLA DE LOGIN PROTEGIDA (ADMIN_PASS)
+  // SPINNER DE VERIFICACIÓN INICIAL
+  // ==========================================
+  if (verifyingSession) {
+    return (
+      <main className="min-h-screen bg-black text-zinc-100 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <RefreshCw className="w-7 h-7 text-violet-500 animate-spin" />
+          <p className="text-xs text-zinc-400">Verificando credenciales de administrador...</p>
+        </div>
+      </main>
+    )
+  }
+
+  // ==========================================
+  // PANTALLA DE LOGIN PROTEGIDA (ADMIN_PASS + HTTP-ONLY COOKIE)
   // ==========================================
   if (!isAuthenticated) {
     return (
@@ -212,7 +252,7 @@ export default function AdminDashboardPage() {
                 Panel de Administración
               </h1>
               <p className="text-xs text-zinc-400">
-                Ingresa tu contraseña de administrador para gestionar los turnos
+                Ingresa tu contraseña de administrador para gestionar los turnos de forma segura.
               </p>
             </div>
 
@@ -227,7 +267,7 @@ export default function AdminDashboardPage() {
                     required
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="Contraseña (ej. admin123)"
+                    placeholder="Contraseña de administrador"
                     className="w-full px-4 py-3 rounded-2xl bg-zinc-950/70 border border-white/[0.08] focus:border-violet-500 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all"
                   />
                 </div>
@@ -337,7 +377,7 @@ export default function AdminDashboardPage() {
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
             </h1>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Supervisa y gestiona los turnos en tiempo real con actualización instantánea.
+              Supervisa y gestiona los turnos en tiempo real con aislamiento de datos seguro.
             </p>
           </div>
 
@@ -483,6 +523,7 @@ export default function AdminDashboardPage() {
             <div className="divide-y divide-white/[0.06]">
               {filteredBookings.map((b) => {
                 const isCancelled = b.status === 'CANCELLED' || b.status === 'Cancelado'
+                const isPaid = b.paymentStatus === 'PAID'
                 const cleanPhone = b.clientPhone.replace(/\D/g, '')
 
                 return (
@@ -521,6 +562,21 @@ export default function AdminDashboardPage() {
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                               <CheckCircle2 className="w-3 h-3" /> Confirmado
+                            </span>
+                          )}
+
+                          {/* Payment Status Badge */}
+                          {isPaid ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                              <Check className="w-3 h-3" /> Pagado Online (MP)
+                            </span>
+                          ) : b.paymentMethod === 'Mercado Pago' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                              <CreditCard className="w-3 h-3" /> MP Pendiente
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-800 text-zinc-400 border border-white/5">
+                              <Banknote className="w-3 h-3" /> Pago en Local
                             </span>
                           )}
 

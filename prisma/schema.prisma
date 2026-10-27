@@ -1,4 +1,4 @@
-// Prisma schema file for SQLite / Tech Minimalist BarberSaaS
+// Prisma schema file for Tech Minimalist BarberSaaS
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,6 +10,7 @@ datasource db {
 
 model Booking {
   id               String   @id @default(cuid())
+  tenantId         String   @default("tenant-golden-blade")
   clientName       String   // Nombre y apellido
   clientPhone      String   // Teléfono / WhatsApp
   serviceName      String   // Servicio seleccionado
@@ -19,11 +20,16 @@ model Booking {
   status           String   @default("CONFIRMED") // PENDING, CONFIRMED, CANCELLED
   totalPrice       Float?   @default(0)
   paymentMethod    String?  @default("Efectivo / Transferencia en el local")
+  paymentStatus    String   @default("PENDING") // PENDING, PAID, REJECTED
+  paymentId        String?  // ID de pago de Mercado Pago
+  preferenceId     String?  // ID de preferencia de Mercado Pago
   clientEmail      String?
   clientNotes      String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  @@index([tenantId, date])
   @@index([date])
   @@index([status])
+  @@index([paymentStatus])
 }
