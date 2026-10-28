@@ -7,28 +7,18 @@
 
 export const PAYMENT_METHOD_CASH = 'Efectivo o transferencia en local'
 export const PAYMENT_METHOD_MP = 'Mercado Pago'
-export const PAYMENT_METHOD_GPAY = 'Google Pay'
 
 /** Interruptor de Mercado Pago (la opción se muestra y se puede seleccionar). */
 export const MERCADOPAGO_ENABLED = true
 
-/** Pago online: Mercado Pago o Google Pay (Stripe). */
-export function isOnlinePayment(method?: string | null): boolean {
-  const m = (method || PAYMENT_METHOD_CASH).trim()
-  return m === PAYMENT_METHOD_MP || m === PAYMENT_METHOD_GPAY
-}
-
-/** Todo método que no es online se trata como pago presencial. */
+/** Todo método distinto de Mercado Pago se trata como pago presencial. */
 export function isCashPayment(method?: string | null): boolean {
-  return !isOnlinePayment(method)
+  return (method || PAYMENT_METHOD_CASH).trim() !== PAYMENT_METHOD_MP
 }
 
 /** Normaliza cualquier valor recibido (incluye el texto legacy) a un método válido. */
 export function normalizePaymentMethod(method?: string | null): string {
-  const m = (method || '').trim()
-  if (m === PAYMENT_METHOD_GPAY) return PAYMENT_METHOD_GPAY
-  if (m === PAYMENT_METHOD_MP && MERCADOPAGO_ENABLED) return PAYMENT_METHOD_MP
-  return PAYMENT_METHOD_CASH
+  return !MERCADOPAGO_ENABLED || isCashPayment(method) ? PAYMENT_METHOD_CASH : PAYMENT_METHOD_MP
 }
 
 /** Total a cobrar: valor completo del servicio, entero y nunca negativo. */

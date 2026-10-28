@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { BookingWizard } from '@/components/booking/BookingWizard'
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
 import { mockTenant, mockServices, mockProfessionals } from '@/data/mock-tenant'
 import { Scissors, ShieldCheck, Database, Layers, CheckCircle } from 'lucide-react'
 
@@ -26,15 +27,17 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/60 border border-zinc-800 text-zinc-400">
+          <div className="flex items-center gap-3 text-xs">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/60 border border-zinc-800 text-zinc-400">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span>Tenant: <strong className="text-white font-mono">/{mockTenant.slug}</strong></span>
             </div>
 
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-400 bg-violet-500/10 px-2.5 py-1 rounded-full border border-violet-500/20">
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-400 bg-violet-500/10 px-2.5 py-1 rounded-full border border-violet-500/20">
               <ShieldCheck className="w-3.5 h-3.5" /> Tech Minimalist
             </span>
+
+            <GoogleSignInButton variant="navbar" />
           </div>
         </div>
       </nav>

@@ -22,9 +22,8 @@ import { StepServiceAndProfessional } from './StepServiceAndProfessional'
 import { StepDateTime } from './StepDateTime'
 import { StepConfirmation } from './StepConfirmation'
 import { BookingSuccessTicket } from './BookingSuccessTicket'
-import { PaymentBrickPanel } from './PaymentBrickPanel'
-import { GooglePayPanel } from './GooglePayPanel'
-import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP, PAYMENT_METHOD_GPAY } from '@/lib/pricing'
+import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
 interface BookingWizardProps {
   tenant: TenantInfo
@@ -33,8 +32,6 @@ interface BookingWizardProps {
 }
 
 const STORAGE_KEY = 'barberSaaS_clientData'
-// Clave publicable de Stripe (pública por diseño). Sin ella, Google Pay no se ofrece.
-const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
 
 export const BookingWizard: React.FC<BookingWizardProps> = ({
   tenant,
@@ -59,19 +56,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [confirmStatus, setConfirmStatus] = useState<'idle' | 'processing' | 'success'>('idle')
   const [isSuccess, setIsSuccess] = useState<boolean>(false)
   const [confirmedBookingCode, setConfirmedBookingCode] = useState<string>('')
-  const [mpPublicKey, setMpPublicKey] = useState<string | null>(null)
-  const [brick, setBrick] = useState<{ bookingId: string; preferenceId: string | null; amount: number } | null>(null)
-  const [gpay, setGpay] = useState<{ bookingId: string; amount: number } | null>(null)
   const [slotNotice, setSlotNotice] = useState<string>('')
   const [refreshKey, setRefreshKey] = useState<number>(0)
-
-  // Public Key de Mercado Pago para habilitar el Payment Brick embebido
-  useEffect(() => {
-    fetch('/api/payments/config')
-      .then((r) => r.json())
-      .then((d) => setMpPublicKey(d?.enabled ? d.publicKey : null))
-      .catch(() => setMpPublicKey(null))
-  }, [])
 
   // Panel DOM refs for smart auto-scroll
   const panel1Ref = useRef<HTMLDivElement>(null)
@@ -89,6 +75,40 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       return () => clearTimeout(timer)
     }
   }, [activePanel])
+
+  // Auto-completar nombre y email si el cliente inició sesión con Google (Supabase Auth)
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient()
+    if (!supabase) return
+
+    const applySessionUser = (user: { email?: string; user_metadata?: Record<string, string> } | null) => {
+      if (!user) return
+      const meta = user.user_metadata || {}
+      const googleName =
+        meta.full_name ||
+        meta.name ||
+        [meta.given_name, meta.family_name].filter(Boolean).join(' ') ||
+        ''
+      const googleEmail = user.email || meta.email || ''
+      if (googleName || googleEmail) {
+        setHasAutofilledData(true)
+        setClient((prev) => ({
+          ...prev,
+          name: prev.name || googleName,
+          email: prev.email || googleEmail,
+        }))
+      }
+    }
+
+    supabase.auth.getUser().then(({ data }) => applySessionUser(data.user as never))
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySessionUser((session?.user as never) ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   // "Memoria Inteligente" (Auto-fill) from localStorage
   useEffect(() => {
@@ -267,7 +287,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
       // Si el cliente seleccionó Mercado Pago, generar la preferencia de pago.
       // El monto lo toma el servidor desde la reserva guardada (valor total).
-      let preferenceId: string | null = null
       if (effectivePaymentMethod === PAYMENT_METHOD_MP) {
         try {
           const mpRes = await fetch('/api/payments/create-preference', {
@@ -280,20 +299,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             if (mpData.success && mpData.initPoint) {
               setPaymentLink(mpData.initPoint)
             }
-            if (mpData.success && mpData.preferenceId) preferenceId = mpData.preferenceId
           }
         } catch (mpErr) {
           console.warn('Error al conectar con Mercado Pago:', mpErr)
         }
-      }
-
-      // Con Public Key disponible, se muestra el Payment Brick antes del ticket final.
-      if (effectivePaymentMethod === PAYMENT_METHOD_MP && mpPublicKey) {
-        setBrick({ bookingId, preferenceId, amount: data.total ?? calculateTotal(selectedService?.price || 0) })
-      }
-
-      if (effectivePaymentMethod === PAYMENT_METHOD_GPAY && STRIPE_PUBLISHABLE_KEY) {
-        setGpay({ bookingId, amount: data.total ?? calculateTotal(selectedService?.price || 0) })
       }
 
       setConfirmedBookingCode(bookingId)
@@ -309,7 +318,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       selectedDate,
       selectedTime,
       selectedPaymentMethod,
-      mpPublicKey,
     ]
   )
 
@@ -322,8 +330,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setClient({ name: '', phone: '', email: '', notes: '' })
     setSelectedPaymentMethod('')
     setPaymentLink(null)
-    setBrick(null)
-    setGpay(null)
     setConfirmStatus('idle')
     setIsSuccess(false)
   }, [])
@@ -384,28 +390,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-2">
       <AnimatePresence mode="wait">
-        {isSuccess && gpay ? (
-          <motion.div key="google-pay" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <GooglePayPanel
-              bookingId={gpay.bookingId}
-              amount={gpay.amount}
-              publishableKey={STRIPE_PUBLISHABLE_KEY}
-              onPaid={() => setGpay(null)}
-            />
-          </motion.div>
-        ) : isSuccess && brick && mpPublicKey ? (
-          <motion.div key="payment-brick" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <PaymentBrickPanel
-              bookingId={brick.bookingId}
-              amount={brick.amount}
-              publicKey={mpPublicKey}
-              preferenceId={brick.preferenceId}
-              payerEmail={client.email || undefined}
-              onPaid={() => setBrick(null)}
-              onPending={() => setBrick(null)}
-            />
-          </motion.div>
-        ) : isSuccess && selectedService && selectedProfessional ? (
+        {isSuccess && selectedService && selectedProfessional ? (
           <motion.div
             key="success-ticket"
             initial={{ opacity: 0, scale: 0.96 }}
@@ -865,8 +850,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             confirmStatus={confirmStatus}
                             setConfirmStatus={setConfirmStatus}
                             hasAutofilledData={hasAutofilledData}
-                            embeddedPayment={!!mpPublicKey}
-                            googlePayEnabled={!!STRIPE_PUBLISHABLE_KEY}
                           />
                         </div>
                       </motion.div>

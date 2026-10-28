@@ -1,6 +1,7 @@
 import React from 'react'
 import { notFound } from 'next/navigation'
 import { BookingWizard } from '@/components/booking/BookingWizard'
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
 import { mockTenant, mockServices, mockProfessionals } from '@/data/mock-tenant'
 import { Scissors } from 'lucide-react'
 
@@ -32,9 +33,12 @@ export default async function TenantBookingPage({ params }: TenantPageProps) {
             <span className="font-bold text-sm tracking-tight text-white">{tenant.name}</span>
           </div>
 
-          <span className="text-[11px] font-medium text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-full border border-violet-500/20">
-            Turnos Online
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline-flex text-[11px] font-medium text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-full border border-violet-500/20">
+              Turnos Online
+            </span>
+            <GoogleSignInButton variant="navbar" />
+          </div>
         </div>
       </nav>
 

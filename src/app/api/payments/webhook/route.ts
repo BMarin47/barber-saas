@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getPaymentDetails, verifyMercadoPagoSignature } from '@/lib/mercadopago'
 import { updateBookingPayment, getBookingById } from '@/lib/bookings'
-import { sendConfirmationForBooking } from '@/lib/notifications'
 
 export async function POST(req: Request) {
   try {
@@ -103,19 +102,11 @@ export async function POST(req: Request) {
               return NextResponse.json({ received: true }, { status: 200 })
             }
 
-            const updated = await updateBookingPayment(bookingId, {
+            await updateBookingPayment(bookingId, {
               paymentStatus: newPaymentStatus,
               paymentId: String(paymentInfo.id),
               status: newBookingStatus,
             })
-
-            // El correo al cliente sale recién cuando el pago queda PAID + CONFIRMED (una sola vez).
-            if (newPaymentStatus === 'PAID' && booking.paymentStatus !== 'PAID') {
-              await sendConfirmationForBooking(
-                updated ?? { ...booking, paymentStatus: 'PAID', status: 'CONFIRMED' },
-                new URL(req.url).origin
-              )
-            }
 
             console.log(`[Mercado Pago Webhook] Turno ${bookingId} actualizado: pago=${newPaymentStatus}, status=${newBookingStatus}`)
           }

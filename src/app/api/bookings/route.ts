@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createBooking, getBookings, SlotTakenError } from '@/lib/bookings'
-import { calculateTotal, normalizePaymentMethod, isCashPayment, PAYMENT_METHOD_GPAY } from '@/lib/pricing'
-import type { EmailSendResult } from '@/lib/email'
-import { sendConfirmationForBooking } from '@/lib/notifications'
+import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
+import { sendBookingConfirmationEmails, type EmailSendResult } from '@/lib/email'
 import { mockServices, mockTenant } from '@/data/mock-tenant'
 import { generateTimeSlots } from '@/utils/generateTimeSlots'
 import { getAdminSession } from '@/lib/auth'
@@ -87,12 +86,6 @@ export async function POST(req: Request) {
       )
     }
     const method = normalizePaymentMethod(paymentMethod)
-    if (method === PAYMENT_METHOD_GPAY && !process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json(
-        { success: false, error: 'El pago con Google Pay no está disponible por el momento' },
-        { status: 400 }
-      )
-    }
     const total = calculateTotal(service.price)
     const resolvedTenantId = tenantId?.trim() || mockTenant.id
 
@@ -123,18 +116,37 @@ export async function POST(req: Request) {
       throw err
     }
 
-    // Correos: sólo pago presencial se confirma de inmediato. En pagos online el correo sale
-    // desde el webhook del procesador cuando el pago queda PAID + CONFIRMED.
+    // Correos: aislados con try/catch, un fallo de Resend nunca revierte la reserva.
     let emailNotification: EmailSendResult = { sent: false, customerSent: false, adminSent: false, errors: [] }
-    if (isCashPayment(method)) {
-      emailNotification = await sendConfirmationForBooking(booking, new URL(req.url).origin)
+    try {
+      const origin = (process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin).replace(/\/$/, '')
+      emailNotification = await sendBookingConfirmationEmails({
+        bookingId: booking.id as string,
+        tenantName: mockTenant.name,
+        tenantAddress: mockTenant.address,
+        clientName: booking.clientName,
+        clientPhone: booking.clientPhone,
+        clientEmail: booking.clientEmail,
+        serviceName: booking.serviceName,
+        professionalName: booking.professionalName || '',
+        date: booking.date,
+        time: booking.time,
+        paymentMethod: method,
+        amount: total,
+        notes: booking.clientNotes,
+        cancelUrl: `${origin}/cancelar/${booking.id}`,
+      })
+    } catch (emailErr) {
+      console.error('Error enviando correos de confirmación:', emailErr)
+      emailNotification.errors.push(emailErr instanceof Error ? emailErr.message : String(emailErr))
     }
+
     return NextResponse.json({
       success: true,
       booking,
       bookingId: booking.id,
       total,
-      requiresOnlinePayment: !isCashPayment(method),
+      requiresOnlinePayment: method === PAYMENT_METHOD_MP,
       emailNotification: { sent: emailNotification.sent, errors: emailNotification.errors },
       message: 'Reserva guardada correctamente en la base de datos',
     })

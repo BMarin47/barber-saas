@@ -568,11 +568,11 @@ export default function AdminDashboardPage() {
                           {/* Payment Status Badge */}
                           {isPaid ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                              <Check className="w-3 h-3" /> Pagado Online ({b.paymentMethod === 'Google Pay' ? 'Google Pay' : 'MP'})
+                              <Check className="w-3 h-3" /> Pagado Online (MP)
                             </span>
-                          ) : b.paymentMethod === 'Mercado Pago' || b.paymentMethod === 'Google Pay' ? (
+                          ) : b.paymentMethod === 'Mercado Pago' ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                              <CreditCard className="w-3 h-3" /> Pago online pendiente
+                              <CreditCard className="w-3 h-3" /> MP Pendiente
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-800 text-zinc-400 border border-white/5">
