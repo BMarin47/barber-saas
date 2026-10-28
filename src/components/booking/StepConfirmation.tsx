@@ -25,10 +25,9 @@ import {
   ClientDetails,
 } from '@/types/booking'
 import {
-  calculatePricing,
+  calculateTotal,
   PAYMENT_METHOD_CASH,
   PAYMENT_METHOD_MP,
-  CASH_DISCOUNT_PERCENT,
   MERCADOPAGO_ENABLED,
 } from '@/lib/pricing'
 
@@ -77,11 +76,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     if (!MERCADOPAGO_ENABLED && paymentMethod !== PAYMENT_METHOD_CASH) onSelectPaymentMethod(PAYMENT_METHOD_CASH)
   }, [paymentMethod, onSelectPaymentMethod])
 
-  // Total con descuento dinámico: 10% OFF sólo si elige efectivo o transferencia en local
-  const pricing = useMemo(
-    () => calculatePricing(service.price, paymentMethod ? paymentMethod : PAYMENT_METHOD_MP),
-    [service.price, paymentMethod]
-  )
+  const total = useMemo(() => calculateTotal(service.price), [service.price])
 
   // Format date nicely: "Miércoles 7 de Octubre, 2026"
   const formattedDate = useMemo(() => {
@@ -141,10 +136,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   // Build the preformatted WhatsApp URL with dynamic cancellation link
   const buildWhatsAppUrl = useCallback((bookingId: string) => {
     const formattedDateDDMMYYYY = formatDDMMYYYY(date)
-    const formattedPrice =
-      pricing.discountAmount > 0
-        ? `${formatPrice(pricing.finalAmount)} (${pricing.discountPercent}% OFF, antes ${formatPrice(pricing.originalAmount)})`
-        : formatPrice(pricing.finalAmount)
+    const formattedPrice = formatPrice(total)
 
     const baseUrl = typeof window !== 'undefined' && window.location.origin
       ? window.location.origin
@@ -165,7 +157,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     ].join('\n')
 
     return `https://wa.me/${TARGET_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
-  }, [date, formatDDMMYYYY, formatPrice, pricing, service.name, client.name, professional.name, time, paymentMethod])
+  }, [date, formatDDMMYYYY, formatPrice, total, service.name, client.name, professional.name, time, paymentMethod])
 
   // Intercept confirm event: save to DB first to get unique ID, then open WhatsApp
   const handleConfirm = useCallback(async (e?: React.FormEvent) => {
@@ -307,18 +299,8 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   </span>
                 </div>
                 <div className="text-right">
-                  {pricing.discountAmount > 0 && (
-                    <div className="flex items-center justify-end gap-2 mb-0.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-emerald-950 tracking-wide">
-                        {pricing.discountPercent}% OFF
-                      </span>
-                      <span className="text-sm text-zinc-500 line-through font-medium">
-                        {formatPrice(pricing.originalAmount)}
-                      </span>
-                    </div>
-                  )}
                   <span className="text-2xl font-black text-white tracking-tight">
-                    {formatPrice(pricing.finalAmount)}
+                    {formatPrice(total)}
                   </span>
                 </div>
               </div>
@@ -493,9 +475,6 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                       <p className="text-xs text-zinc-400 whitespace-normal break-words leading-tight mt-1">
                         Abonás al finalizar el servicio
                       </p>
-                      <span className="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-emerald-950 tracking-wide">
-                        {CASH_DISCOUNT_PERCENT}% OFF
-                      </span>
                     </div>
                   </motion.button>
 

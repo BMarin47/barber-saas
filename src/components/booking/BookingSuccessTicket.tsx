@@ -17,7 +17,7 @@ import {
   CreditCard,
 } from 'lucide-react'
 import { TenantInfo, ServiceItem, ProfessionalItem, ClientDetails } from '@/types/booking'
-import { calculatePricing, PAYMENT_METHOD_MP } from '@/lib/pricing'
+import { calculateTotal } from '@/lib/pricing'
 
 interface BookingSuccessTicketProps {
   tenant: TenantInfo
@@ -67,8 +67,8 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
     }).format(price)
   }
 
-  // Total final (con 10% OFF si el pago es presencial), calculado con la misma regla que el servidor
-  const pricing = calculatePricing(service.price, paymentMethod || PAYMENT_METHOD_MP)
+  // Total a abonar: valor completo del servicio, calculado con la misma regla que el servidor
+  const total = calculateTotal(service.price)
 
   const formatDDMMYYYY = (dateStr: string): string => {
     if (!dateStr) return ''
@@ -83,7 +83,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
   const whatsappMessage = [
     'Hola, quiero confirmar mi reserva en la barbería.',
     `👤 Cliente: ${client.name.trim()}`,
-    `✂️ Servicio: ${service.name} - ${formatPrice(pricing.finalAmount)}${pricing.discountAmount > 0 ? ` (${pricing.discountPercent}% OFF)` : ''}`,
+    `✂️ Servicio: ${service.name} - ${formatPrice(total)}`,
     `💈 Profesional: ${professional.name}`,
     `📅 Fecha: ${formatDDMMYYYY(date)}`,
     `⏰ Hora: ${time}`,
@@ -223,17 +223,7 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
           <div>
             <span className="text-xs text-zinc-500 block uppercase">Total a abonar</span>
             <span className="text-2xl font-black text-violet-400 tracking-tight">
-              {pricing.discountAmount > 0 && (
-                <span className="flex items-center gap-2 mb-0.5">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-emerald-950 tracking-wide">
-                    {pricing.discountPercent}% OFF
-                  </span>
-                  <span className="text-sm text-zinc-500 line-through font-medium">
-                    {formatPrice(pricing.originalAmount)}
-                  </span>
-                </span>
-              )}
-              {formatPrice(pricing.finalAmount)}
+              {formatPrice(total)}
             </span>
           </div>
 

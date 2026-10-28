@@ -22,7 +22,7 @@ import { StepServiceAndProfessional } from './StepServiceAndProfessional'
 import { StepDateTime } from './StepDateTime'
 import { StepConfirmation } from './StepConfirmation'
 import { BookingSuccessTicket } from './BookingSuccessTicket'
-import { calculatePricing, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
+import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
 
 interface BookingWizardProps {
   tenant: TenantInfo
@@ -224,8 +224,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             clientEmail: client.email,
             clientNotes: client.notes,
             paymentMethod: effectivePaymentMethod,
-            // Sólo informativo: el servidor recalcula el total (con descuento) por su cuenta.
-            totalPrice: calculatePricing(selectedService?.price || 0, effectivePaymentMethod).finalAmount,
+            // Sólo informativo: el servidor recalcula el total por su cuenta.
+            totalPrice: calculateTotal(selectedService?.price || 0),
           }),
         })
       } catch {
@@ -251,7 +251,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       const bookingId: string = data.bookingId
 
       // Si el cliente seleccionó Mercado Pago, generar la preferencia de pago.
-      // El monto lo toma el servidor desde la reserva guardada (ya con el descuento aplicado).
+      // El monto lo toma el servidor desde la reserva guardada (valor total).
       if (effectivePaymentMethod === PAYMENT_METHOD_MP) {
         try {
           const mpRes = await fetch('/api/payments/create-preference', {

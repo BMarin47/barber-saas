@@ -12,10 +12,7 @@ export interface BookingEmailPayload {
   date: string // YYYY-MM-DD
   time: string // HH:mm
   paymentMethod: string
-  originalAmount: number
-  discountPercent: number
-  discountAmount: number
-  finalAmount: number
+  amount: number
   notes?: string | null
   cancelUrl?: string
 }
@@ -62,19 +59,14 @@ function row(label: string, value: string, highlight = false): string {
 /** Plantilla "tarjeta oscura" con la fila visible "Cliente:" (Nombre, Apellido y Teléfono). */
 export function buildBookingEmailHtml(p: BookingEmailPayload, audience: 'customer' | 'admin'): string {
   const isMp = p.paymentMethod === PAYMENT_METHOD_MP
-  const priceHtml =
-    p.discountAmount > 0
-      ? `<span style="text-decoration:line-through;color:#71717a;font-weight:400;margin-right:6px;">${money(
-          p.originalAmount
-        )}</span>${money(p.finalAmount)} <span style="background:#10b981;color:#052e16;font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;">${p.discountPercent}% OFF</span>`
-      : money(p.finalAmount)
+  const priceHtml = money(p.amount)
 
   const heading =
     audience === 'admin' ? 'Nueva reserva recibida' : '¡Tu turno está reservado!'
   const paymentNote = isMp
     ? 'Pago online pendiente de acreditación en Mercado Pago.'
     : isCashPayment(p.paymentMethod)
-    ? 'Abonás en el local (efectivo o transferencia) con 10% de descuento.'
+    ? 'Abonás en el local (efectivo o transferencia).'
     : ''
 
   return `<!DOCTYPE html>

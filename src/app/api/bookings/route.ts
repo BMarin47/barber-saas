@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createBooking, getBookings, SlotTakenError } from '@/lib/bookings'
-import { calculatePricing, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
+import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
 import { sendBookingConfirmationEmails, type EmailSendResult } from '@/lib/email'
 import { mockServices, mockTenant } from '@/data/mock-tenant'
 import { generateTimeSlots } from '@/utils/generateTimeSlots'
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     }
 
     // El precio NUNCA se toma del navegador: se busca el servicio en el catálogo del servidor
-    // y se recalcula el descuento según el método de pago.
+    // y se recalcula el total.
     const service = mockServices.find((s) => s.name === serviceName)
     if (!service) {
       return NextResponse.json(
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
       )
     }
     const method = normalizePaymentMethod(paymentMethod)
-    const pricing = calculatePricing(service.price, method)
+    const total = calculateTotal(service.price)
     const resolvedTenantId = tenantId?.trim() || mockTenant.id
 
     let booking
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
         professionalName: professionalName || undefined,
         date,
         time,
-        totalPrice: pricing.finalAmount, // monto FINAL con descuento
+        totalPrice: total, // valor total (100%)
         paymentMethod: method,
         paymentStatus: 'PENDING',
         clientEmail: cleanEmail || undefined,
@@ -132,10 +132,7 @@ export async function POST(req: Request) {
         date: booking.date,
         time: booking.time,
         paymentMethod: method,
-        originalAmount: pricing.originalAmount,
-        discountPercent: pricing.discountPercent,
-        discountAmount: pricing.discountAmount,
-        finalAmount: pricing.finalAmount,
+        amount: total,
         notes: booking.clientNotes,
         cancelUrl: `${origin}/cancelar/${booking.id}`,
       })
@@ -148,7 +145,7 @@ export async function POST(req: Request) {
       success: true,
       booking,
       bookingId: booking.id,
-      pricing,
+      total,
       requiresOnlinePayment: method === PAYMENT_METHOD_MP,
       emailNotification: { sent: emailNotification.sent, errors: emailNotification.errors },
       message: 'Reserva guardada correctamente en la base de datos',
