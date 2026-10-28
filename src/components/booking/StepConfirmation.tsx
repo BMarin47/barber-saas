@@ -49,6 +49,8 @@ interface StepConfirmationProps {
   setConfirmStatus: (status: 'idle' | 'processing' | 'success') => void
   registerConfirmAction?: (fn: () => void) => void
   hasAutofilledData?: boolean
+  /** Si es true, el pago con Mercado Pago usa el Payment Brick embebido (no se abre WhatsApp antes de pagar). */
+  embeddedPayment?: boolean
 }
 
 export const StepConfirmation: React.FC<StepConfirmationProps> = ({
@@ -68,6 +70,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   setConfirmStatus,
   registerConfirmAction,
   hasAutofilledData = false,
+  embeddedPayment = false,
 }) => {
   const [errors, setErrors] = useState<{ name?: string; phone?: string; paymentMethod?: string }>({})
   const [submitError, setSubmitError] = useState<string>('')
@@ -191,6 +194,8 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       // Micro-interacción visual
       await new Promise((resolve) => setTimeout(resolve, 350))
 
+      if (embeddedPayment && paymentMethod === PAYMENT_METHOD_MP) return
+
       const whatsappUrl = buildWhatsAppUrl(bookingId)
       // Abrir WhatsApp en nueva pestaña
       window.open(whatsappUrl, '_blank')
@@ -199,7 +204,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       setSubmitError(error instanceof Error ? error.message : 'No se pudo confirmar la reserva.')
       setConfirmStatus('idle')
     }
-  }, [validate, client.phone, buildWhatsAppUrl, onConfirmBooking, paymentMethod, setConfirmStatus])
+  }, [validate, client.phone, buildWhatsAppUrl, onConfirmBooking, paymentMethod, setConfirmStatus, embeddedPayment])
 
   // Register confirmation action for external triggers (e.g. StickyBottomBar)
   React.useEffect(() => {
@@ -309,7 +314,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                 <div>
                   <span className="text-xs text-zinc-400 block">Total a pagar:</span>
                   <span className="text-[11px] text-emerald-400 font-medium">
-                    {paymentMethod === PAYMENT_METHOD_MP ? 'Pago online con Mercado Pago' : 'En el local al finalizar'}
+                    {paymentMethod === PAYMENT_METHOD_MP ? 'Pago online con tarjeta o Mercado Pago' : 'En el local al finalizar'}
                   </span>
                 </div>
                 <div className="text-right">
@@ -539,7 +544,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                         </div>
                       </div>
                       <p className="text-xs text-zinc-400 whitespace-normal break-words leading-tight mt-1">
-                        Envío de dinero o QR
+                        Tarjeta, débito o dinero en cuenta
                       </p>
                     </div>
                   </motion.button>
@@ -584,7 +589,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   ) : paymentMethod === PAYMENT_METHOD_MP ? (
                     <>
                       <CreditCard className="w-5 h-5" />
-                      <span>Confirmar y Pagar con Mercado Pago</span>
+                      <span>Confirmar y Pagar online</span>
                     </>
                   ) : (
                     <>
