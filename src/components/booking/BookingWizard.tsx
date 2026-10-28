@@ -22,6 +22,7 @@ import { StepServiceAndProfessional } from './StepServiceAndProfessional'
 import { StepDateTime } from './StepDateTime'
 import { StepConfirmation } from './StepConfirmation'
 import { BookingSuccessTicket } from './BookingSuccessTicket'
+import { PaymentBrickPanel } from './PaymentBrickPanel'
 import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
 
 interface BookingWizardProps {
@@ -55,8 +56,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [confirmStatus, setConfirmStatus] = useState<'idle' | 'processing' | 'success'>('idle')
   const [isSuccess, setIsSuccess] = useState<boolean>(false)
   const [confirmedBookingCode, setConfirmedBookingCode] = useState<string>('')
+  const [mpPublicKey, setMpPublicKey] = useState<string | null>(null)
+  const [brick, setBrick] = useState<{ bookingId: string; preferenceId: string | null; amount: number } | null>(null)
   const [slotNotice, setSlotNotice] = useState<string>('')
   const [refreshKey, setRefreshKey] = useState<number>(0)
+
+  // Public Key de Mercado Pago para habilitar el Payment Brick embebido
+  useEffect(() => {
+    fetch('/api/payments/config')
+      .then((r) => r.json())
+      .then((d) => setMpPublicKey(d?.enabled ? d.publicKey : null))
+      .catch(() => setMpPublicKey(null))
+  }, [])
 
   // Panel DOM refs for smart auto-scroll
   const panel1Ref = useRef<HTMLDivElement>(null)
@@ -252,6 +263,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
       // Si el cliente seleccionó Mercado Pago, generar la preferencia de pago.
       // El monto lo toma el servidor desde la reserva guardada (valor total).
+      let preferenceId: string | null = null
       if (effectivePaymentMethod === PAYMENT_METHOD_MP) {
         try {
           const mpRes = await fetch('/api/payments/create-preference', {
@@ -264,10 +276,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             if (mpData.success && mpData.initPoint) {
               setPaymentLink(mpData.initPoint)
             }
+            if (mpData.success && mpData.preferenceId) preferenceId = mpData.preferenceId
           }
         } catch (mpErr) {
           console.warn('Error al conectar con Mercado Pago:', mpErr)
         }
+      }
+
+      // Con Public Key disponible, se muestra el Payment Brick antes del ticket final.
+      if (effectivePaymentMethod === PAYMENT_METHOD_MP && mpPublicKey) {
+        setBrick({ bookingId, preferenceId, amount: data.total ?? calculateTotal(selectedService?.price || 0) })
       }
 
       setConfirmedBookingCode(bookingId)
@@ -283,6 +301,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       selectedDate,
       selectedTime,
       selectedPaymentMethod,
+      mpPublicKey,
     ]
   )
 
@@ -295,6 +314,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setClient({ name: '', phone: '', email: '', notes: '' })
     setSelectedPaymentMethod('')
     setPaymentLink(null)
+    setBrick(null)
     setConfirmStatus('idle')
     setIsSuccess(false)
   }, [])
@@ -355,7 +375,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-2">
       <AnimatePresence mode="wait">
-        {isSuccess && selectedService && selectedProfessional ? (
+        {isSuccess && brick && mpPublicKey ? (
+          <motion.div key="payment-brick" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <PaymentBrickPanel
+              bookingId={brick.bookingId}
+              amount={brick.amount}
+              publicKey={mpPublicKey}
+              preferenceId={brick.preferenceId}
+              payerEmail={client.email || undefined}
+              onPaid={() => setBrick(null)}
+              onPending={() => setBrick(null)}
+            />
+          </motion.div>
+        ) : isSuccess && selectedService && selectedProfessional ? (
           <motion.div
             key="success-ticket"
             initial={{ opacity: 0, scale: 0.96 }}
@@ -815,6 +847,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             confirmStatus={confirmStatus}
                             setConfirmStatus={setConfirmStatus}
                             hasAutofilledData={hasAutofilledData}
+                            embeddedPayment={!!mpPublicKey}
                           />
                         </div>
                       </motion.div>
