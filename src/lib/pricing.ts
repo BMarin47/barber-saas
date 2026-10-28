@@ -7,6 +7,9 @@
 export const PAYMENT_METHOD_CASH = 'Efectivo o transferencia en local'
 export const PAYMENT_METHOD_MP = 'Mercado Pago'
 
+/** Mercado Pago deshabilitado temporalmente: el sistema opera solo con pago presencial. */
+export const MERCADOPAGO_ENABLED = false
+
 /** Descuento por pagar presencialmente (efectivo o transferencia en local). */
 export const CASH_DISCOUNT_PERCENT = 10
 
@@ -24,7 +27,7 @@ export function isCashPayment(method?: string | null): boolean {
 
 /** Normaliza cualquier valor recibido (incluye el texto legacy) a un método válido. */
 export function normalizePaymentMethod(method?: string | null): string {
-  return isCashPayment(method) ? PAYMENT_METHOD_CASH : PAYMENT_METHOD_MP
+  return !MERCADOPAGO_ENABLED || isCashPayment(method) ? PAYMENT_METHOD_CASH : PAYMENT_METHOD_MP
 }
 
 export function calculatePricing(basePrice: number, method?: string | null): PricingBreakdown {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Calendar,
@@ -29,6 +29,7 @@ import {
   PAYMENT_METHOD_CASH,
   PAYMENT_METHOD_MP,
   CASH_DISCOUNT_PERCENT,
+  MERCADOPAGO_ENABLED,
 } from '@/lib/pricing'
 
 interface StepConfirmationProps {
@@ -70,6 +71,11 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
 }) => {
   const [errors, setErrors] = useState<{ name?: string; phone?: string; paymentMethod?: string }>({})
   const [submitError, setSubmitError] = useState<string>('')
+
+  // Con Mercado Pago deshabilitado, el pago presencial queda preseleccionado
+  useEffect(() => {
+    if (!MERCADOPAGO_ENABLED && paymentMethod !== PAYMENT_METHOD_CASH) onSelectPaymentMethod(PAYMENT_METHOD_CASH)
+  }, [paymentMethod, onSelectPaymentMethod])
 
   // Total con descuento dinámico: 10% OFF sólo si elige efectivo o transferencia en local
   const pricing = useMemo(
@@ -494,6 +500,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   </motion.button>
 
                   {/* Option 2: Mercado Pago */}
+                  {MERCADOPAGO_ENABLED && (
                   <motion.button
                     type="button"
                     onClick={() => {
@@ -539,6 +546,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                       </p>
                     </div>
                   </motion.button>
+                  )}
                 </div>
                 {errors.paymentMethod && (
                   <p className="text-xs text-rose-400 mt-1.5">{errors.paymentMethod}</p>
