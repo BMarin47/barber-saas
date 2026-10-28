@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { getBookingById, updateBookingPayment } from '@/lib/bookings'
 import { getMercadoPagoAccessToken } from '@/lib/mercadopago'
+import { sendConfirmationForBooking } from '@/lib/notifications'
 import { PAYMENT_METHOD_MP } from '@/lib/pricing'
 
 /**
@@ -85,11 +86,15 @@ export async function POST(req: Request) {
 
     // Misma regla que el webhook; el webhook queda como respaldo idempotente.
     if (data.status === 'approved') {
-      await updateBookingPayment(bookingId, {
+      const updated = await updateBookingPayment(bookingId, {
         paymentStatus: 'PAID',
         paymentId: String(data.id),
         status: 'CONFIRMED',
       })
+      await sendConfirmationForBooking(
+        updated ?? { ...booking, paymentStatus: 'PAID', status: 'CONFIRMED' },
+        new URL(req.url).origin
+      )
     } else if (data.status === 'in_process' || data.status === 'pending') {
       await updateBookingPayment(bookingId, { paymentStatus: 'PENDING', paymentId: String(data.id) })
     }

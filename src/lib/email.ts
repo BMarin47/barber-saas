@@ -1,4 +1,4 @@
-import { PAYMENT_METHOD_MP, isCashPayment } from '@/lib/pricing'
+import { isOnlinePayment, isCashPayment } from '@/lib/pricing'
 
 export interface BookingEmailPayload {
   bookingId: string
@@ -58,13 +58,13 @@ function row(label: string, value: string, highlight = false): string {
 
 /** Plantilla "tarjeta oscura" con la fila visible "Cliente:" (Nombre, Apellido y Teléfono). */
 export function buildBookingEmailHtml(p: BookingEmailPayload, audience: 'customer' | 'admin'): string {
-  const isMp = p.paymentMethod === PAYMENT_METHOD_MP
+  const isOnline = isOnlinePayment(p.paymentMethod)
   const priceHtml = money(p.amount)
 
   const heading =
     audience === 'admin' ? 'Nueva reserva recibida' : '¡Tu turno está reservado!'
-  const paymentNote = isMp
-    ? 'Pago online pendiente de acreditación en Mercado Pago.'
+  const paymentNote = isOnline
+    ? 'Pago online acreditado.'
     : isCashPayment(p.paymentMethod)
     ? 'Abonás en el local (efectivo o transferencia).'
     : ''

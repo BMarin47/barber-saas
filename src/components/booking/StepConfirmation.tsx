@@ -17,6 +17,7 @@ import {
   Loader2,
   Banknote,
   CreditCard,
+  Smartphone,
 } from 'lucide-react'
 import {
   TenantInfo,
@@ -28,6 +29,7 @@ import {
   calculateTotal,
   PAYMENT_METHOD_CASH,
   PAYMENT_METHOD_MP,
+  PAYMENT_METHOD_GPAY,
   MERCADOPAGO_ENABLED,
 } from '@/lib/pricing'
 
@@ -50,6 +52,8 @@ interface StepConfirmationProps {
   hasAutofilledData?: boolean
   /** Si es true, el pago con Mercado Pago usa el Brick embebido (no se abre WhatsApp antes de pagar). */
   embeddedPayment?: boolean
+  /** Muestra la opción Google Pay (requiere Stripe configurado). */
+  googlePayEnabled?: boolean
 }
 
 export const StepConfirmation: React.FC<StepConfirmationProps> = ({
@@ -70,13 +74,14 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   registerConfirmAction,
   hasAutofilledData = false,
   embeddedPayment = false,
+  googlePayEnabled = false,
 }) => {
   const [errors, setErrors] = useState<{ name?: string; phone?: string; paymentMethod?: string }>({})
   const [submitError, setSubmitError] = useState<string>('')
 
   // Con Mercado Pago deshabilitado, el pago presencial queda preseleccionado
   useEffect(() => {
-    if (!MERCADOPAGO_ENABLED && paymentMethod !== PAYMENT_METHOD_CASH) onSelectPaymentMethod(PAYMENT_METHOD_CASH)
+    if (!MERCADOPAGO_ENABLED && paymentMethod !== PAYMENT_METHOD_CASH && paymentMethod !== PAYMENT_METHOD_GPAY) onSelectPaymentMethod(PAYMENT_METHOD_CASH)
   }, [paymentMethod, onSelectPaymentMethod])
 
   const total = useMemo(() => calculateTotal(service.price), [service.price])
@@ -180,7 +185,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       // Micro-interacción visual
       await new Promise((resolve) => setTimeout(resolve, 350))
 
-      if (embeddedPayment && paymentMethod === PAYMENT_METHOD_MP) return
+      if (paymentMethod === PAYMENT_METHOD_GPAY || (embeddedPayment && paymentMethod === PAYMENT_METHOD_MP)) return
 
       const whatsappUrl = buildWhatsAppUrl(bookingId)
       // Abrir WhatsApp en nueva pestaña
@@ -300,7 +305,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                 <div>
                   <span className="text-xs text-zinc-400 block">Total a pagar:</span>
                   <span className="text-[11px] text-emerald-400 font-medium">
-                    {paymentMethod === PAYMENT_METHOD_MP ? 'Pago online con tarjeta o Mercado Pago' : 'En el local al finalizar'}
+                    {paymentMethod === PAYMENT_METHOD_MP ? 'Pago online con tarjeta o Mercado Pago' : paymentMethod === PAYMENT_METHOD_GPAY ? 'Pago online con Google Pay' : 'En el local al finalizar'}
                   </span>
                 </div>
                 <div className="text-right">
@@ -531,6 +536,55 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                     </div>
                   </motion.button>
                   )}
+
+                  {/* Option 3: Google Pay */}
+                  {googlePayEnabled && (
+                  <motion.button
+                    type="button"
+                    onClick={() => {
+                      onSelectPaymentMethod(PAYMENT_METHOD_GPAY)
+                      setErrors((prev) => ({ ...prev, paymentMethod: undefined }))
+                    }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.97 }}
+                    className={`flex items-start gap-3 p-4 min-h-[64px] rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                      paymentMethod === PAYMENT_METHOD_GPAY
+                        ? 'bg-violet-500/10 border-violet-500 ring-1 ring-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
+                        : 'bg-zinc-900/30 border-white/5 hover:border-white/10 hover:bg-zinc-900/50'
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                        paymentMethod === PAYMENT_METHOD_GPAY
+                          ? 'bg-violet-500/20 text-violet-400'
+                          : 'bg-white/[0.04] text-zinc-400'
+                      }`}
+                    >
+                      <Smartphone className="w-5 h-5 shrink-0" />
+                    </div>
+                    <div className="flex-1 min-w-0 pr-0.5">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <span className="text-sm font-bold text-white whitespace-normal break-words leading-tight">
+                          Google Pay
+                        </span>
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                            paymentMethod === PAYMENT_METHOD_GPAY
+                              ? 'border-violet-500 bg-violet-500'
+                              : 'border-zinc-700 bg-zinc-900'
+                          }`}
+                        >
+                          {paymentMethod === PAYMENT_METHOD_GPAY && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-zinc-400 whitespace-normal break-words leading-tight mt-1">
+                        {'Pag\u00e1 con tus tarjetas de Google'}
+                      </p>
+                    </div>
+                  </motion.button>
+                  )}
                 </div>
                 {errors.paymentMethod && (
                   <p className="text-xs text-rose-400 mt-1.5">{errors.paymentMethod}</p>
@@ -561,12 +615,17 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   {confirmStatus === 'processing' ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>{paymentMethod === PAYMENT_METHOD_MP ? 'Generando Pago y Reserva...' : 'Procesando...'}</span>
+                      <span>{paymentMethod === PAYMENT_METHOD_MP || paymentMethod === PAYMENT_METHOD_GPAY ? 'Generando Pago y Reserva...' : 'Procesando...'}</span>
                     </>
                   ) : confirmStatus === 'success' ? (
                     <>
                       <CheckCircle2 className="w-5 h-5 text-white" />
                       <span>✅ ¡Reserva Lista!</span>
+                    </>
+                  ) : paymentMethod === PAYMENT_METHOD_GPAY ? (
+                    <>
+                      <Smartphone className="w-5 h-5" />
+                      <span>Confirmar y Pagar con Google Pay</span>
                     </>
                   ) : paymentMethod === PAYMENT_METHOD_MP ? (
                     <>
@@ -581,7 +640,9 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                   )}
                 </motion.button>
                 <p className="text-center text-xs text-zinc-400">
-                  {paymentMethod === PAYMENT_METHOD_MP
+                  {paymentMethod === PAYMENT_METHOD_GPAY
+                    ? 'Al confirmar, se reserva tu horario y se muestra el botón de Google Pay para completar el pago.'
+                    : paymentMethod === PAYMENT_METHOD_MP
                     ? 'Al confirmar, se generará tu comprobante y el link de pago seguro de Mercado Pago.'
                     : 'Al confirmar, se abrirá WhatsApp con el resumen de tu reserva preformateado.'}
                 </p>

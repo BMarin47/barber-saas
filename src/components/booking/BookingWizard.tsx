@@ -23,7 +23,8 @@ import { StepDateTime } from './StepDateTime'
 import { StepConfirmation } from './StepConfirmation'
 import { BookingSuccessTicket } from './BookingSuccessTicket'
 import { PaymentBrickPanel } from './PaymentBrickPanel'
-import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
+import { GooglePayPanel } from './GooglePayPanel'
+import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP, PAYMENT_METHOD_GPAY } from '@/lib/pricing'
 
 interface BookingWizardProps {
   tenant: TenantInfo
@@ -32,6 +33,8 @@ interface BookingWizardProps {
 }
 
 const STORAGE_KEY = 'barberSaaS_clientData'
+// Clave publicable de Stripe (pública por diseño). Sin ella, Google Pay no se ofrece.
+const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
 
 export const BookingWizard: React.FC<BookingWizardProps> = ({
   tenant,
@@ -58,6 +61,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [confirmedBookingCode, setConfirmedBookingCode] = useState<string>('')
   const [mpPublicKey, setMpPublicKey] = useState<string | null>(null)
   const [brick, setBrick] = useState<{ bookingId: string; preferenceId: string | null; amount: number } | null>(null)
+  const [gpay, setGpay] = useState<{ bookingId: string; amount: number } | null>(null)
   const [slotNotice, setSlotNotice] = useState<string>('')
   const [refreshKey, setRefreshKey] = useState<number>(0)
 
@@ -288,6 +292,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setBrick({ bookingId, preferenceId, amount: data.total ?? calculateTotal(selectedService?.price || 0) })
       }
 
+      if (effectivePaymentMethod === PAYMENT_METHOD_GPAY && STRIPE_PUBLISHABLE_KEY) {
+        setGpay({ bookingId, amount: data.total ?? calculateTotal(selectedService?.price || 0) })
+      }
+
       setConfirmedBookingCode(bookingId)
       setIsSuccess(true)
       return bookingId
@@ -315,6 +323,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setSelectedPaymentMethod('')
     setPaymentLink(null)
     setBrick(null)
+    setGpay(null)
     setConfirmStatus('idle')
     setIsSuccess(false)
   }, [])
@@ -375,7 +384,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-2">
       <AnimatePresence mode="wait">
-        {isSuccess && brick && mpPublicKey ? (
+        {isSuccess && gpay ? (
+          <motion.div key="google-pay" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <GooglePayPanel
+              bookingId={gpay.bookingId}
+              amount={gpay.amount}
+              publishableKey={STRIPE_PUBLISHABLE_KEY}
+              onPaid={() => setGpay(null)}
+            />
+          </motion.div>
+        ) : isSuccess && brick && mpPublicKey ? (
           <motion.div key="payment-brick" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <PaymentBrickPanel
               bookingId={brick.bookingId}
@@ -848,6 +866,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             setConfirmStatus={setConfirmStatus}
                             hasAutofilledData={hasAutofilledData}
                             embeddedPayment={!!mpPublicKey}
+                            googlePayEnabled={!!STRIPE_PUBLISHABLE_KEY}
                           />
                         </div>
                       </motion.div>
