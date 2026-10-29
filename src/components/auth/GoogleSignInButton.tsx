@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { LogOut, Loader2 } from 'lucide-react'
 import { resolveSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -12,7 +13,7 @@ export interface GoogleUserProfile {
 }
 
 interface GoogleSignInButtonProps {
-  variant?: 'navbar' | 'form'
+  variant?: 'navbar' | 'form' | 'login'
   onUserAuthenticated?: (profile: GoogleUserProfile | null) => void
 }
 
@@ -55,6 +56,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   variant = 'navbar',
   onUserAuthenticated,
 }) => {
+  const router = useRouter()
   const [profile, setProfile] = useState<GoogleUserProfile | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
@@ -90,6 +92,9 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         const extracted = extractUserProfile(session?.user ?? null)
         setProfile(extracted)
         callbackRef.current?.(extracted)
+        if (extracted && variant === 'login') {
+          router.replace('/')
+        }
       })
 
       // 2. Suscripción en tiempo real a cambios de autenticación (login, logout, token refresh)
@@ -100,6 +105,9 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         const extracted = extractUserProfile(session?.user ?? null)
         setProfile(extracted)
         callbackRef.current?.(extracted)
+        if (extracted && variant === 'login') {
+          router.replace('/')
+        }
       })
 
       unsubscribe = () => subscription.unsubscribe()
@@ -109,7 +117,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       isMounted = false
       unsubscribe?.()
     }
-  }, [])
+  }, [router, variant])
 
   const handleSignIn = useCallback(async () => {
     setError('')
@@ -161,7 +169,9 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     setProfile(null)
     callbackRef.current?.(null)
     setLoading(false)
-  }, [])
+    router.push('/login')
+    router.refresh()
+  }, [router])
 
   if (variant === 'navbar') {
     if (profile) {
@@ -207,6 +217,25 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GoogleLogo className="w-3.5 h-3.5" />}
         <span>Iniciar sesión con Google</span>
       </button>
+    )
+  }
+
+  if (variant === 'login') {
+    return (
+      <div className="space-y-2.5">
+        <button
+          type="button"
+          onClick={handleSignIn}
+          disabled={loading}
+          className="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-zinc-100 text-zinc-900 font-bold text-sm sm:text-base flex items-center justify-center gap-3 shadow-lg shadow-white/5 transition-all cursor-pointer disabled:opacity-60"
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <GoogleLogo className="w-5 h-5" />}
+          <span>Iniciar sesión con Google</span>
+        </button>
+        {error && (
+          <p className="text-xs text-rose-400 text-center">{error}</p>
+        )}
+      </div>
     )
   }
 
