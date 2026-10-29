@@ -5,7 +5,7 @@ import { mockTenant } from '@/data/mock-tenant'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET /api/availability?date=YYYY-MM-DD&professional=<nombre>&tenantId=<id>
+ * GET /api/availability?date=YYYY-MM-DD&tenantId=<id>
  * Devuelve sólo los horarios ocupados (sin datos personales) para pintar "Ya ocupado".
  */
 export async function GET(req: Request) {
@@ -16,9 +16,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: 'Fecha inválida' }, { status: 400 })
     }
     const tenantId = searchParams.get('tenantId') || mockTenant.id
-    const professional = searchParams.get('professional')
 
-    const bookedTimes = await getBookedTimes(tenantId, professional, date)
+    const bookedTimes = await getBookedTimes(tenantId, date)
     return NextResponse.json(
       { success: true, bookedTimes },
       { headers: { 'Cache-Control': 'no-store' } }

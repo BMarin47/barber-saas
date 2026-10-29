@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Calendar,
   Clock,
-  User,
   Scissors,
   MapPin,
   MessageCircle,
@@ -16,13 +15,12 @@ import {
   Banknote,
   CreditCard,
 } from 'lucide-react'
-import { TenantInfo, ServiceItem, ProfessionalItem, ClientDetails } from '@/types/booking'
+import { TenantInfo, ServiceItem, ClientDetails } from '@/types/booking'
 import { calculateTotal } from '@/lib/pricing'
 
 interface BookingSuccessTicketProps {
   tenant: TenantInfo
   service: ServiceItem
-  professional: ProfessionalItem
   date: string
   time: string
   client: ClientDetails
@@ -36,7 +34,6 @@ interface BookingSuccessTicketProps {
 export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
   tenant,
   service,
-  professional,
   date,
   time,
   client,
@@ -84,7 +81,6 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
     'Hola, quiero confirmar mi reserva en la barbería.',
     `👤 Cliente: ${client.name.trim()}`,
     `✂️ Servicio: ${service.name} - ${formatPrice(total)}`,
-    `💈 Profesional: ${professional.name}`,
     `📅 Fecha: ${formatDDMMYYYY(date)}`,
     `⏰ Hora: ${time}`,
     ...(paymentMethod ? [`💵 Medio de Pago: ${paymentMethod}`] : []),
@@ -142,22 +138,12 @@ export const BookingSuccessTicket: React.FC<BookingSuccessTicketProps> = ({
 
         {/* Ticket Body / Cutout Simulation */}
         <div className="py-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-xs text-zinc-500 block uppercase">Servicio</span>
-              <p className="text-sm md:text-base font-bold text-zinc-100 flex items-center gap-1.5 mt-0.5">
-                <Scissors className="w-4 h-4 text-violet-400 shrink-0" />
-                <span className="truncate">{service.name}</span>
-              </p>
-            </div>
-
-            <div>
-              <span className="text-xs text-zinc-500 block uppercase">Profesional</span>
-              <p className="text-sm md:text-base font-bold text-zinc-100 flex items-center gap-1.5 mt-0.5">
-                <User className="w-4 h-4 text-violet-400 shrink-0" />
-                <span className="truncate">{professional.name}</span>
-              </p>
-            </div>
+          <div>
+            <span className="text-xs text-zinc-500 block uppercase">Servicio</span>
+            <p className="text-sm md:text-base font-bold text-zinc-100 flex items-center gap-1.5 mt-0.5">
+              <Scissors className="w-4 h-4 text-violet-400 shrink-0" />
+              <span className="truncate">{service.name}</span>
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-2">

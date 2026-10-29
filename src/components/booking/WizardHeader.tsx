@@ -13,7 +13,7 @@ interface WizardHeaderProps {
 }
 
 const STEPS = [
-  { step: 1, title: 'Servicio & Barbero', icon: Scissors, subtitle: 'Qué y con quién' },
+  { step: 1, title: 'Servicio', icon: Scissors, subtitle: 'Elige tu corte' },
   { step: 2, title: 'Fecha y Hora', icon: Calendar, subtitle: 'Cuándo venís' },
   { step: 3, title: 'Confirmación', icon: CheckCircle2, subtitle: 'Tus datos y WhatsApp' },
 ]

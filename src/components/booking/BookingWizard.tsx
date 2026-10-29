@@ -15,7 +15,6 @@ import {
 import {
   TenantInfo,
   ServiceItem,
-  ProfessionalItem,
   ClientDetails,
 } from '@/types/booking'
 import { StepServiceAndProfessional } from './StepServiceAndProfessional'
@@ -29,7 +28,6 @@ import { resolveSupabaseBrowserClient } from '@/lib/supabase/client'
 interface BookingWizardProps {
   tenant: TenantInfo
   services: ServiceItem[]
-  professionals: ProfessionalItem[]
 }
 
 const STORAGE_KEY = 'barberSaaS_clientData'
@@ -37,12 +35,10 @@ const STORAGE_KEY = 'barberSaaS_clientData'
 export const BookingWizard: React.FC<BookingWizardProps> = ({
   tenant,
   services,
-  professionals,
 }) => {
   // Active accordion panel: only 1 panel expanded at a time (UX Cero Scroll)
   const [activePanel, setActivePanel] = useState<number>(1)
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null)
-  const [selectedProfessional, setSelectedProfessional] = useState<ProfessionalItem | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedTime, setSelectedTime] = useState<string>('')
   const [client, setClient] = useState<ClientDetails>({
@@ -157,31 +153,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     return () => clearTimeout(timer)
   }, [])
 
-  // Paso 1: Salto instantáneo (Zero Delay) al tocar servicio
-  const handleSelectService = useCallback(
-    (service: ServiceItem) => {
-      setSelectedService(service)
-      if (!selectedProfessional && professionals.length > 0) {
-        setSelectedProfessional(professionals[0])
-      }
-      setActivePanel(2)
-    },
-    [selectedProfessional, professionals]
-  )
+  // Paso 1: Salto instantáneo (Zero Delay) al tocar servicio -> directo a Fecha y Hora
+  const handleSelectService = useCallback((service: ServiceItem) => {
+    setSelectedService(service)
+    setActivePanel(2)
+  }, [])
 
   const handleAdvanceToStep2 = useCallback(() => {
     setActivePanel(2)
   }, [])
-
-  const handleSelectProfessional = useCallback(
-    (pro: ProfessionalItem) => {
-      setSelectedProfessional(pro)
-      if (selectedService) {
-        setActivePanel(2)
-      }
-    },
-    [selectedService]
-  )
 
   // Step 2 Date & Time
   const handleSelectDate = useCallback((date: string) => {
@@ -271,7 +251,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           body: JSON.stringify({
             tenantId: tenant.id,
             serviceName: selectedService?.name,
-            professionalName: selectedProfessional?.name,
             date: selectedDate,
             time: selectedTime,
             clientName: client.name,
@@ -341,7 +320,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       tenant.id,
       tenant.slug,
       selectedService,
-      selectedProfessional,
       selectedDate,
       selectedTime,
       selectedPaymentMethod,
@@ -352,7 +330,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const handleReset = useCallback(() => {
     setActivePanel(1)
     setSelectedService(null)
-    setSelectedProfessional(null)
     setSelectedDate('')
     setSelectedTime('')
     setClient({ name: '', phone: '', email: '', notes: '' })
@@ -431,7 +408,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               onPending={() => setBrick(null)}
             />
           </motion.div>
-        ) : isSuccess && selectedService && selectedProfessional ? (
+        ) : isSuccess && selectedService ? (
           <motion.div
             key="success-ticket"
             initial={{ opacity: 0, scale: 0.96 }}
@@ -442,7 +419,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             <BookingSuccessTicket
               tenant={tenant}
               service={selectedService}
-              professional={selectedProfessional}
               date={selectedDate}
               time={selectedTime}
               client={client}
@@ -491,7 +467,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             {/* Contenedor Principal del Acordeón con Altura Controlada (Zero Global Scroll) */}
             <div className="rounded-3xl bg-zinc-900/30 border border-white/[0.08] backdrop-blur-2xl shadow-2xl overflow-hidden divide-y divide-white/[0.06]">
               {/* ======================================================== */}
-              {/* PANEL 1: SERVICIO & PROFESIONAL                          */}
+              {/* PANEL 1: SERVICIO                                        */}
               {/* ======================================================== */}
               <div ref={panel1Ref} className="transition-colors scroll-mt-4 sm:scroll-mt-6">
                 <div
@@ -533,7 +509,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           }`}
                         >
                           <Scissors className="w-4 h-4 text-violet-400 shrink-0" />
-                          <span>Servicio & Profesional</span>
+                          <span>Servicio</span>
                         </h2>
                         {activePanel === 1 && (
                           <span className="text-[10px] font-semibold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full shrink-0">
@@ -549,7 +525,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             <>
                               <span className="text-emerald-400 font-medium">✔️</span>
                               <span className="text-zinc-200 font-medium truncate">
-                                {selectedService?.name} con {selectedProfessional?.name}
+                                {selectedService?.name}
                               </span>
                               <span className="text-zinc-400 font-mono shrink-0">
                                 • {formatPrice(selectedService!.price)}
@@ -557,7 +533,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                             </>
                           ) : (
                             <span className="text-zinc-500">
-                              Elige tu servicio y con quién te atiendes
+                              Elige el servicio que deseas realizarte
                             </span>
                           )}
                         </p>
@@ -606,11 +582,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       <div className="overflow-y-auto max-h-[50vh] sm:max-h-[54vh] md:max-h-[58vh] p-4 sm:p-6 pr-2">
                         <StepServiceAndProfessional
                           services={services}
-                          professionals={professionals}
                           selectedService={selectedService}
-                          selectedProfessional={selectedProfessional}
                           onSelectService={handleSelectService}
-                          onSelectProfessional={handleSelectProfessional}
                           onAdvanceToStep2={handleAdvanceToStep2}
                           currency={tenant.currency}
                         />
@@ -740,7 +713,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       <div className="overflow-y-auto max-h-[50vh] sm:max-h-[54vh] md:max-h-[58vh] p-4 sm:p-6 pr-2">
                         <StepDateTime
                           service={selectedService}
-                          professional={selectedProfessional || professionals[0]}
                           selectedDate={selectedDate}
                           selectedTime={selectedTime}
                           onSelectDate={handleSelectDate}
@@ -879,8 +851,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           <StepConfirmation
                             tenant={tenant}
                             service={selectedService}
-                            professional={selectedProfessional || professionals[0]}
-                            date={selectedDate}
+                              date={selectedDate}
                             time={selectedTime}
                             client={client}
                             onChangeClient={handleChangeClient}

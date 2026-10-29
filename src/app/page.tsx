@@ -3,7 +3,7 @@
 import React from 'react'
 import { BookingWizard } from '@/components/booking/BookingWizard'
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
-import { mockTenant, mockServices, mockProfessionals } from '@/data/mock-tenant'
+import { mockTenant, mockServices } from '@/data/mock-tenant'
 import { Scissors, ShieldCheck, Database, Layers, CheckCircle } from 'lucide-react'
 
 export default function HomePage() {
@@ -52,7 +52,7 @@ export default function HomePage() {
           Reservas Online <span className="text-violet-400">Simples y Rápidas</span>
         </h2>
         <p className="text-xs sm:text-sm text-zinc-400 max-w-lg mx-auto mt-1">
-          Elige tu servicio, barbero y horario en segundos. Confirmación directa a WhatsApp.
+          Elige tu servicio y horario en segundos. Confirmación directa a WhatsApp.
         </p>
       </div>
 
@@ -61,7 +61,6 @@ export default function HomePage() {
         <BookingWizard
           tenant={mockTenant}
           services={mockServices}
-          professionals={mockProfessionals}
         />
       </section>
 

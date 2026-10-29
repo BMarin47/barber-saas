@@ -27,19 +27,6 @@ export interface ServiceItem {
   popular?: boolean
 }
 
-export interface ProfessionalItem {
-  id: string
-  tenantId: string
-  name: string
-  role: string
-  bio: string
-  avatarUrl: string
-  rating: number
-  reviewCount: number
-  availableToday?: boolean
-  nextAvailableSlot?: string
-}
-
 export interface ClientDetails {
   name: string
   phone: string
@@ -55,7 +42,6 @@ export interface TimeSlot {
 
 export interface BookingState {
   service: ServiceItem | null
-  professional: ProfessionalItem | null
   date: string // YYYY-MM-DD
   time: string // HH:MM
   client: ClientDetails

@@ -4,19 +4,17 @@ import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   Scissors,
-  User,
   Clock,
   ArrowRight,
   MessageCircle,
   Loader2,
   CheckCircle2,
 } from 'lucide-react'
-import { ServiceItem, ProfessionalItem } from '@/types/booking'
+import { ServiceItem } from '@/types/booking'
 
 interface StickyBottomBarProps {
   currentStep: number
   selectedService: ServiceItem | null
-  selectedProfessional: ProfessionalItem | null
   selectedDate: string
   selectedTime: string
   currency?: string
@@ -28,7 +26,6 @@ interface StickyBottomBarProps {
 export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
   currentStep,
   selectedService,
-  selectedProfessional,
   selectedDate,
   selectedTime,
   currency = 'ARS',
@@ -57,10 +54,8 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
 
   const buttonConfig = useMemo(() => {
     if (currentStep === 1) {
-      const isReady = !!selectedService && !!selectedProfessional
-      let label = 'Continuar a Horarios'
-      if (!selectedService) label = 'Elige tu servicio'
-      else if (!selectedProfessional) label = 'Elige tu barbero'
+      const isReady = !!selectedService
+      const label = selectedService ? 'Continuar a Horarios' : 'Elige tu servicio'
 
       return {
         label,
@@ -116,7 +111,7 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
       icon: <MessageCircle className="w-5 h-5 fill-white stroke-none" />,
       className: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/35',
     }
-  }, [currentStep, selectedService, selectedProfessional, selectedTime, confirmStatus, onNext, onConfirm])
+  }, [currentStep, selectedService, selectedTime, confirmStatus, onNext, onConfirm])
 
   return (
     <motion.div
@@ -147,12 +142,6 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
               </span>
             )}
 
-            {selectedProfessional && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/[0.04] border border-white/[0.08] text-zinc-300 truncate max-w-[150px]">
-                <User className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                <span className="truncate">{selectedProfessional.name}</span>
-              </span>
-            )}
 
             {selectedTime && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-500/10 border border-violet-500/20 text-violet-300 shrink-0">

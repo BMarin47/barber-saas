@@ -21,7 +21,6 @@ import {
 import {
   TenantInfo,
   ServiceItem,
-  ProfessionalItem,
   ClientDetails,
 } from '@/types/booking'
 import {
@@ -35,7 +34,6 @@ import { GoogleSignInButton, type GoogleUserProfile } from '@/components/auth/Go
 interface StepConfirmationProps {
   tenant: TenantInfo
   service: ServiceItem
-  professional: ProfessionalItem
   date: string // YYYY-MM-DD
   time: string // HH:MM
   client: ClientDetails
@@ -56,7 +54,6 @@ interface StepConfirmationProps {
 export const StepConfirmation: React.FC<StepConfirmationProps> = ({
   tenant,
   service,
-  professional,
   date,
   time,
   client,
@@ -165,7 +162,6 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
       'Hola, quiero confirmar mi reserva en la barbería.',
       `👤 Cliente: ${client.name.trim()}`,
       `✂️ Servicio: ${service.name} - ${formattedPrice}`,
-      `💈 Profesional: ${professional.name}`,
       `📅 Fecha: ${formattedDateDDMMYYYY}`,
       `⏰ Hora: ${time}`,
       `💵 Medio de Pago: ${paymentMethod}`,
@@ -174,7 +170,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     ].join('\n')
 
     return `https://wa.me/${TARGET_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
-  }, [date, formatDDMMYYYY, formatPrice, total, service.name, client.name, professional.name, time, paymentMethod])
+  }, [date, formatDDMMYYYY, formatPrice, total, service.name, client.name, time, paymentMethod])
 
   // Intercept confirm event: save to DB first to get unique ID, then open WhatsApp
   const handleConfirm = useCallback(async (e?: React.FormEvent) => {
@@ -272,17 +268,6 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
                 </div>
               </div>
 
-              {/* Professional */}
-              <div className="flex items-start gap-3 pt-3 border-t border-white/[0.06]">
-                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                  <User className="w-5 h-5 text-violet-400" />
-                </div>
-                <div>
-                  <span className="text-[10px] text-zinc-500 block uppercase font-medium">Profesional</span>
-                  <h4 className="text-sm font-bold text-white">{professional.name}</h4>
-                  <span className="text-xs text-violet-400 font-medium">{professional.role}</span>
-                </div>
-              </div>
 
               {/* Date & Time */}
               <div className="flex items-start gap-3 pt-3 border-t border-white/[0.06]">

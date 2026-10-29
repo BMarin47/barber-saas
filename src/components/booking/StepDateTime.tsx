@@ -14,7 +14,7 @@ import {
   Coffee,
   Info,
 } from 'lucide-react'
-import { ServiceItem, ProfessionalItem } from '@/types/booking'
+import { ServiceItem } from '@/types/booking'
 import {
   generateTimeSlots,
   getTimeSlotsGrouped,
@@ -27,7 +27,6 @@ import {
 
 interface StepDateTimeProps {
   service: ServiceItem
-  professional: ProfessionalItem
   selectedDate: string
   selectedTime: string
   onSelectDate: (date: string) => void
@@ -55,7 +54,6 @@ interface DayOption {
 
 export const StepDateTime: React.FC<StepDateTimeProps> = ({
   service,
-  professional,
   selectedDate,
   selectedTime,
   onSelectDate,
@@ -79,7 +77,6 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
       try {
         const qs = new URLSearchParams({
           date: selectedDate,
-          professional: professional?.name || '',
         })
         if (tenantId) qs.set('tenantId', tenantId)
         const res = await fetch(`/api/availability?${qs.toString()}`, { cache: 'no-store' })
@@ -104,7 +101,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
       clearInterval(interval)
       window.removeEventListener('focus', onFocus)
     }
-  }, [selectedDate, professional?.name, tenantId, refreshKey])
+  }, [selectedDate, tenantId, refreshKey])
 
   // Auto-scroll interno al seleccionar un día válido
   const handleDaySelect = useCallback(
@@ -238,8 +235,7 @@ export const StepDateTime: React.FC<StepDateTimeProps> = ({
             <span>Fecha y Horario</span>
           </h2>
           <p className="text-sm text-zinc-400 mt-1">
-            Turnos de 30 minutos para <span className="text-white font-semibold">{service.name}</span> con{' '}
-            <span className="text-white font-semibold">{professional.name}</span>
+            Turnos de 30 minutos para <span className="text-white font-semibold">{service.name}</span>
           </p>
         </div>
       </div>

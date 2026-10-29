@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto'
 import prisma from '@/lib/prisma'
-import { mockProfessionals } from '@/data/mock-tenant'
 import { PAYMENT_METHOD_CASH } from '@/lib/pricing'
 
 export interface BookingData {
@@ -24,6 +23,9 @@ export interface BookingData {
   updatedAt?: string | Date
 }
 
+// Valor por defecto invisible para la columna professionalName en la base de datos
+export const DEFAULT_PROFESSIONAL_NAME = 'Barbería General'
+
 // Fallback en memoria en caso de entorno serverless con filesystem de sólo lectura
 declare const globalThis: {
   __memoryBookings?: BookingData[]
@@ -36,7 +38,7 @@ const initialSampleBookings: BookingData[] = [
     clientName: 'Lucas González',
     clientPhone: '5492604654255',
     serviceName: 'Corte y Barba',
-    professionalName: 'Facundo "El Maestro" Rossi',
+    professionalName: DEFAULT_PROFESSIONAL_NAME,
     date: new Date().toISOString().split('T')[0],
     time: '16:00',
     status: 'CONFIRMED',
@@ -53,7 +55,7 @@ const initialSampleBookings: BookingData[] = [
     clientName: 'Martín Morales',
     clientPhone: '5492604889911',
     serviceName: 'Corte de Pelo',
-    professionalName: 'Mateo "Fade King" Benítez',
+    professionalName: DEFAULT_PROFESSIONAL_NAME,
     date: new Date().toISOString().split('T')[0],
     time: '17:30',
     status: 'CONFIRMED',
@@ -71,20 +73,13 @@ if (!globalThis.__memoryBookings) {
   globalThis.__memoryBookings = [...initialSampleBookings]
 }
 
-export const ANY_PROFESSIONAL_NAME = 'Cualquier Profesional'
-
-/** Se lanza cuando el horario ya tiene una reserva activa (cupo = 1 por barbero). */
+/** Se lanza cuando el horario ya tiene una reserva activa. */
 export class SlotTakenError extends Error {
   constructor(message = 'Ese horario ya fue reservado. Por favor elegí otro.') {
     super(message)
     this.name = 'SlotTakenError'
   }
 }
-
-/** Barberos reales (excluye la opción comodín "Cualquier Profesional"). */
-const REAL_PROFESSIONAL_NAMES = mockProfessionals
-  .filter((p) => p.name !== ANY_PROFESSIONAL_NAME)
-  .map((p) => p.name)
 
 function isUniqueViolation(error: unknown): boolean {
   return (
@@ -95,17 +90,16 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 /**
- * Reservas activas (no canceladas) de un día. La memoria sólo se usa si la base de datos
- * no responde, para que los datos de demo nunca bloqueen horarios reales.
+ * Reservas activas (no canceladas) de un día.
  */
 async function getActiveBookingsForDate(
   tenantId: string,
   date: string
-): Promise<Pick<BookingData, 'professionalName' | 'time'>[]> {
+): Promise<Pick<BookingData, 'time'>[]> {
   try {
     return await prisma.booking.findMany({
       where: { tenantId, date, status: { not: 'CANCELLED' } },
-      select: { professionalName: true, time: true },
+      select: { time: true },
     })
   } catch (error) {
     console.warn('Prisma getActiveBookingsForDate fallback a memoria:', error)
@@ -116,114 +110,82 @@ async function getActiveBookingsForDate(
 }
 
 /**
- * Horarios ocupados de un día para un barbero. Para "Cualquier Profesional" un horario
- * está ocupado sólo cuando TODOS los barberos ya tienen turno en ese horario.
+ * Horarios ocupados de un día (cupo directo por horario).
  */
 export async function getBookedTimes(
   tenantId: string,
-  professionalName: string | null | undefined,
   date: string
 ): Promise<string[]> {
   const active = await getActiveBookingsForDate(tenantId, date)
-
-  if (!professionalName || professionalName === ANY_PROFESSIONAL_NAME) {
-    const byTime = new Map<string, Set<string>>()
-    for (const b of active) {
-      const set = byTime.get(b.time) || new Set<string>()
-      set.add(b.professionalName || '')
-      byTime.set(b.time, set)
-    }
-    return [...byTime.entries()]
-      .filter(([, pros]) => REAL_PROFESSIONAL_NAMES.every((n) => pros.has(n)))
-      .map(([time]) => time)
-  }
-
-  return active.filter((b) => b.professionalName === professionalName).map((b) => b.time)
+  return Array.from(new Set(active.map((b) => b.time)))
 }
 
 /**
- * Crea una reserva garantizando 1 sola reserva activa por barbero/fecha/hora:
- *  1) pre-chequeo de disponibilidad (respuesta rápida y clara);
- *  2) índice único parcial en la base de datos (ver prisma/supabase-hardening.sql),
- *     que es la barrera real contra reservas simultáneas (error P2002 -> SlotTakenError).
- * Lanza SlotTakenError si el horario ya no está libre.
+ * Crea una reserva garantizando 1 sola reserva activa por fecha/hora.
+ * Pasa un professionalName por defecto de forma invisible para mantener compatibilidad con la tabla.
  */
 export async function createBooking(data: BookingData): Promise<BookingData> {
   const generatedId = 'bk_' + randomUUID().replace(/-/g, '').substring(0, 20)
   const tenantId = data.tenantId || 'tenant-golden-blade'
 
   const active = await getActiveBookingsForDate(tenantId, data.date)
-  const takenBy = new Set(
-    active.filter((b) => b.time === data.time).map((b) => b.professionalName || '')
-  )
-
-  // Candidatos: el barbero elegido o, si es "Cualquier Profesional", los barberos libres.
-  const requested = data.professionalName || ANY_PROFESSIONAL_NAME
-  const candidates =
-    requested === ANY_PROFESSIONAL_NAME
-      ? REAL_PROFESSIONAL_NAMES.filter((n) => !takenBy.has(n))
-      : takenBy.has(requested)
-      ? []
-      : [requested]
-
-  if (candidates.length === 0) throw new SlotTakenError()
-
-  for (const professionalName of candidates) {
-    const fullData: BookingData = {
-      ...data,
-      id: data.id || generatedId,
-      tenantId,
-      professionalName,
-      status: data.status || 'CONFIRMED',
-      paymentStatus: data.paymentStatus || 'PENDING',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-
-    try {
-      const created = await prisma.booking.create({
-        data: {
-          id: fullData.id,
-          tenantId,
-          clientName: fullData.clientName,
-          clientPhone: fullData.clientPhone,
-          serviceName: fullData.serviceName,
-          professionalName,
-          date: fullData.date,
-          time: fullData.time,
-          status: fullData.status || 'CONFIRMED',
-          totalPrice: fullData.totalPrice || 0,
-          paymentMethod: fullData.paymentMethod || PAYMENT_METHOD_CASH,
-          paymentStatus: fullData.paymentStatus || 'PENDING',
-          paymentId: fullData.paymentId || null,
-          preferenceId: fullData.preferenceId || null,
-          clientEmail: fullData.clientEmail || null,
-          clientNotes: fullData.clientNotes || null,
-        },
-      })
-      if (globalThis.__memoryBookings) {
-        const idx = globalThis.__memoryBookings.findIndex((b) => b.id === created.id)
-        if (idx >= 0) {
-          globalThis.__memoryBookings[idx] = created as BookingData
-        } else {
-          globalThis.__memoryBookings.unshift(created as BookingData)
-        }
-      }
-      return created as BookingData
-    } catch (error) {
-      if (isUniqueViolation(error)) {
-        // Otro cliente tomó este barbero/horario en el mismo instante: probar el siguiente.
-        continue
-      }
-      console.warn('Prisma createBooking fallback a memoria:', error)
-      if (globalThis.__memoryBookings) {
-        globalThis.__memoryBookings.unshift(fullData)
-      }
-      return fullData
-    }
+  if (active.some((b) => b.time === data.time)) {
+    throw new SlotTakenError()
   }
 
-  throw new SlotTakenError()
+  const professionalName = data.professionalName || DEFAULT_PROFESSIONAL_NAME
+
+  const fullData: BookingData = {
+    ...data,
+    id: data.id || generatedId,
+    tenantId,
+    professionalName,
+    status: data.status || 'CONFIRMED',
+    paymentStatus: data.paymentStatus || 'PENDING',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+
+  try {
+    const created = await prisma.booking.create({
+      data: {
+        id: fullData.id,
+        tenantId,
+        clientName: fullData.clientName,
+        clientPhone: fullData.clientPhone,
+        serviceName: fullData.serviceName,
+        professionalName,
+        date: fullData.date,
+        time: fullData.time,
+        status: fullData.status || 'CONFIRMED',
+        totalPrice: fullData.totalPrice || 0,
+        paymentMethod: fullData.paymentMethod || PAYMENT_METHOD_CASH,
+        paymentStatus: fullData.paymentStatus || 'PENDING',
+        paymentId: fullData.paymentId || null,
+        preferenceId: fullData.preferenceId || null,
+        clientEmail: fullData.clientEmail || null,
+        clientNotes: fullData.clientNotes || null,
+      },
+    })
+    if (globalThis.__memoryBookings) {
+      const idx = globalThis.__memoryBookings.findIndex((b) => b.id === created.id)
+      if (idx >= 0) {
+        globalThis.__memoryBookings[idx] = created as BookingData
+      } else {
+        globalThis.__memoryBookings.unshift(created as BookingData)
+      }
+    }
+    return created as BookingData
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      throw new SlotTakenError()
+    }
+    console.warn('Prisma createBooking fallback a memoria:', error)
+    if (globalThis.__memoryBookings) {
+      globalThis.__memoryBookings.unshift(fullData)
+    }
+    return fullData
+  }
 }
 
 export async function getBookings(tenantId?: string): Promise<BookingData[]> {
@@ -234,7 +196,6 @@ export async function getBookings(tenantId?: string): Promise<BookingData[]> {
       orderBy: [{ date: 'asc' }, { time: 'asc' }],
     })
     if (list.length > 0) {
-      // Sincronizar bookings que estén en memoria y no en la lista
       const memory = globalThis.__memoryBookings || []
       const listIds = new Set(list.map((b) => b.id))
       const extraMemory = memory.filter((m) => {

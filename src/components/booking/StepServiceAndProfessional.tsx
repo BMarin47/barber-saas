@@ -4,28 +4,20 @@ import React from 'react'
 import { motion, type Variants } from 'framer-motion'
 import {
   Scissors,
-  User,
   Clock,
   Check,
   Sparkles,
-  Star,
-  Zap,
 } from 'lucide-react'
-import { ServiceItem, ProfessionalItem } from '@/types/booking'
+import { ServiceItem } from '@/types/booking'
 
 interface StepServiceAndProfessionalProps {
   services: ServiceItem[]
-  professionals: ProfessionalItem[]
   selectedService: ServiceItem | null
-  selectedProfessional: ProfessionalItem | null
   onSelectService: (service: ServiceItem) => void
-  onSelectProfessional: (professional: ProfessionalItem) => void
   onAdvanceToStep2?: () => void
-  onNext?: () => void
   currency?: string
 }
 
-// Framer Motion Animation Variants for Staggered Fade-Up with GPU-accelerated Spring
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
@@ -52,16 +44,13 @@ const cardItemVariants: Variants = {
 
 export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProps> = ({
   services,
-  professionals,
   selectedService,
-  selectedProfessional,
   onSelectService,
-  onSelectProfessional,
   onAdvanceToStep2,
   currency = 'ARS',
 }) => {
   const handleServiceSelect = (service: ServiceItem) => {
-    // Inmediatamente actualizar estado y avanzar al paso 2 sin delay
+    // Inmediatamente actualizar estado y avanzar directo a Fecha y Hora
     onSelectService(service)
     if (onAdvanceToStep2) {
       onAdvanceToStep2()
@@ -76,51 +65,16 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
     }).format(price)
   }
 
-  const canContinue = !!selectedService && !!selectedProfessional
-
-  const getProfessionalBadge = (pro: ProfessionalItem) => {
-    if (pro.id === 'pro-any') {
-      return {
-        text: '⚡ Turno Rápido',
-        className: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.15)]',
-      }
-    }
-    if (pro.id === 'pro-1' || pro.name.toLowerCase().includes('maestro')) {
-      return {
-        text: '⭐ Más Elegido',
-        className: 'bg-violet-500/10 text-violet-300 border-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.15)]',
-      }
-    }
-    if (pro.id === 'pro-2' || pro.role.toLowerCase().includes('fade')) {
-      return {
-        text: '🔥 Experto en Degradé',
-        className: 'bg-violet-500/10 text-violet-300 border-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.15)]',
-      }
-    }
-    if (pro.id === 'pro-3' || pro.role.toLowerCase().includes('barba')) {
-      return {
-        text: '✂️ Experto en Barba',
-        className: 'bg-violet-500/10 text-violet-300 border-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.15)]',
-      }
-    }
-    return {
-      text: '⭐ Barbero Oficial',
-      className: 'bg-violet-500/10 text-violet-300 border-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.15)]',
-    }
-  }
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Sub-Header Context */}
       <div className="border-b border-white/[0.08] pb-4">
         <p className="text-xs sm:text-sm text-zinc-400">
-          Selecciona el corte o combo y el profesional con quien deseas atenderte. Al completar ambos, avanzas automáticamente.
+          Selecciona el corte o combo que deseas realizarte. Al tocar un servicio pasarás directamente a elegir fecha y horario.
         </p>
       </div>
 
-      {/* ========================================================= */}
-      {/* SECCIÓN 1: 3 SERVICIOS CON PALETA TECH MINIMALIST         */}
-      {/* ========================================================= */}
+      {/* SECCIÓN DE SERVICIOS */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
@@ -134,7 +88,6 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
           )}
         </div>
 
-        {/* Staggered Grid de 3 Tarjetas con Glassmorphism suave y Scroll Reveal */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -144,7 +97,10 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
         >
           {services.map((service) => {
             const isSelected = selectedService?.id === service.id
-            const isPopular = service.popular || (service.name.toLowerCase().includes('barba') && service.name.toLowerCase().includes('corte'))
+            const isPopular =
+              service.popular ||
+              (service.name.toLowerCase().includes('barba') &&
+                service.name.toLowerCase().includes('corte'))
 
             return (
               <motion.div
@@ -194,9 +150,11 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
                       </span>
                     )}
 
-                    <h3 className={`text-lg sm:text-xl font-bold transition-colors ${
-                      isSelected ? 'text-white' : 'text-zinc-100 group-hover:text-white'
-                    }`}>
+                    <h3
+                      className={`text-lg sm:text-xl font-bold transition-colors ${
+                        isSelected ? 'text-white' : 'text-zinc-100 group-hover:text-white'
+                      }`}
+                    >
                       {service.name}
                     </h3>
                   </div>
@@ -232,129 +190,16 @@ export const StepServiceAndProfessional: React.FC<StepServiceAndProfessionalProp
         </motion.div>
       </div>
 
-      {/* ========================================================= */}
-      {/* SECCIÓN 2: MICRO-INTERACCIONES EN LOS BARBEROS            */}
-      {/* ========================================================= */}
-      <div className="space-y-3 pt-6 border-t border-white/[0.08]">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-violet-400" />
-            2. Elige con quién te Atiendes
-          </label>
-          {selectedProfessional && (
-            <span className="text-xs font-medium text-emerald-400 flex items-center gap-1">
-              <Check className="w-3.5 h-3.5" /> {selectedProfessional.name} seleccionado
-            </span>
-          )}
-        </div>
-
-        {/* Grilla de Barberos con Anillo Suave y Scroll Reveal */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.15 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5"
-        >
-          {professionals.map((pro) => {
-            const isSelected = selectedProfessional?.id === pro.id
-            const isAny = pro.id === 'pro-any'
-            const badge = getProfessionalBadge(pro)
-
-            return (
-              <motion.div
-                key={pro.id}
-                variants={cardItemVariants}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => onSelectProfessional(pro)}
-                className={`group relative rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between border backdrop-blur-md ${
-                  isSelected
-                    ? 'bg-zinc-900/90 border-violet-500 ring-2 ring-violet-500/80 shadow-[0_0_20px_rgba(139,92,246,0.25)]'
-                    : 'bg-white/[0.03] border-white/[0.08] ring-1 ring-white/[0.04] hover:border-zinc-700 hover:bg-white/[0.05]'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  {/* Avatar con Anillo Iluminado cuando está seleccionado */}
-                  <div className="relative shrink-0">
-                    <div
-                      className={`w-12 h-12 rounded-xl overflow-hidden p-[2px] transition-all ${
-                        isSelected
-                          ? 'bg-violet-600 ring-2 ring-violet-500 shadow-md shadow-violet-600/30'
-                          : 'bg-zinc-800 group-hover:bg-zinc-700'
-                      }`}
-                    >
-                      {isAny ? (
-                        <div className="w-full h-full bg-zinc-950 rounded-[10px] flex items-center justify-center">
-                          <Zap className="w-5 h-5 text-violet-400" />
-                        </div>
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={pro.avatarUrl}
-                          alt={pro.name}
-                          className="w-full h-full object-cover rounded-[10px]"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-1">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-violet-400 truncate">
-                        {pro.role}
-                      </span>
-
-                      {/* Mini Check */}
-                      <div
-                        className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all ${
-                          isSelected
-                            ? 'bg-violet-600 border-violet-400 text-white'
-                            : 'border-zinc-700 bg-zinc-800'
-                        }`}
-                      >
-                        {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                      </div>
-                    </div>
-
-                    <h4 className="text-sm font-bold text-white group-hover:text-violet-300 transition-colors truncate mt-0.5">
-                      {pro.name}
-                    </h4>
-
-                    {/* Luminous Badge & Rating */}
-                    <div className="flex items-center justify-between gap-1.5 mt-2.5 pt-2 border-t border-white/[0.06]">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${badge.className}`}>
-                        {badge.text}
-                      </span>
-
-                      <div className="flex items-center gap-1 text-[11px] text-zinc-400 shrink-0">
-                        <Star className="w-3 h-3 fill-violet-400 text-violet-400" />
-                        <span className="text-zinc-200 font-semibold">{pro.rating}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )
-          })}
-        </motion.div>
-      </div>
-
       {/* Feedback de Selección y Auto-Avance */}
       <div className="pt-2 text-center">
-        {canContinue ? (
+        {selectedService ? (
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-semibold animate-pulse">
             <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-            <span>Servicio y profesional elegidos. Avanzando a fecha y horario...</span>
+            <span>Servicio elegido. Avanzando a fecha y horario...</span>
           </div>
         ) : (
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-zinc-400 text-xs font-medium">
-            <span>
-              {!selectedService
-                ? 'Elige un servicio arriba para continuar'
-                : 'Ahora elige con qué barbero deseas atenderte'}
-            </span>
+            <span>Toca un servicio arriba para continuar a fecha y hora</span>
           </div>
         )}
       </div>

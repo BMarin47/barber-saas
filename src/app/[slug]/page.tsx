@@ -2,7 +2,7 @@ import React from 'react'
 import { notFound } from 'next/navigation'
 import { BookingWizard } from '@/components/booking/BookingWizard'
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
-import { mockTenant, mockServices, mockProfessionals } from '@/data/mock-tenant'
+import { mockTenant, mockServices } from '@/data/mock-tenant'
 import { Scissors } from 'lucide-react'
 
 interface TenantPageProps {
@@ -47,7 +47,6 @@ export default async function TenantBookingPage({ params }: TenantPageProps) {
         <BookingWizard
           tenant={tenant}
           services={mockServices}
-          professionals={mockProfessionals}
         />
       </div>
     </main>

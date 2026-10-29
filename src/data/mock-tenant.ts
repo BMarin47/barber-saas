@@ -1,4 +1,4 @@
-import { TenantInfo, ServiceItem, ProfessionalItem } from '@/types/booking'
+import { TenantInfo, ServiceItem } from '@/types/booking'
 
 export const mockTenant: TenantInfo = {
   id: 'tenant-golden-blade',
@@ -50,56 +50,5 @@ export const mockServices: ServiceItem[] = [
     category: 'Barba',
     popular: false,
     imageUrl: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&auto=format&fit=crop&q=80',
-  },
-]
-
-export const mockProfessionals: ProfessionalItem[] = [
-  {
-    id: 'pro-any',
-    tenantId: 'tenant-golden-blade',
-    name: 'Cualquier Profesional',
-    role: 'Primer barbero disponible',
-    bio: 'Te asignaremos automáticamente al mejor barbero con disponibilidad en el horario elegido.',
-    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80',
-    rating: 4.98,
-    reviewCount: 382,
-    availableToday: true,
-    nextAvailableSlot: 'Hoy 16:30 hs',
-  },
-  {
-    id: 'pro-1',
-    tenantId: 'tenant-golden-blade',
-    name: 'Facundo "El Maestro" Rossi',
-    role: 'Master Barber & Fundador',
-    bio: 'Más de 10 años esculpiendo estilos clásicos y ganadores de certámenes internacionales de barbería.',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-    rating: 5.0,
-    reviewCount: 184,
-    availableToday: true,
-    nextAvailableSlot: 'Hoy 17:00 hs',
-  },
-  {
-    id: 'pro-2',
-    tenantId: 'tenant-golden-blade',
-    name: 'Mateo "Fade King" Benítez',
-    role: 'Especialista en Skin Fade & Freestyle',
-    bio: 'Experto en degradés al ras, texturizados modernos, líneas y diseños urbanos de vanguardia.',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
-    rating: 4.96,
-    reviewCount: 142,
-    availableToday: true,
-    nextAvailableSlot: 'Hoy 16:30 hs',
-  },
-  {
-    id: 'pro-3',
-    tenantId: 'tenant-golden-blade',
-    name: 'Lucas "Beard Boss" Silva',
-    role: 'Especialista en Barbas & Spa Tradicional',
-    bio: 'Apasionado del afeitado tradicional con navaja clásica y tratamiento integral de piel y barba.',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
-    rating: 4.94,
-    reviewCount: 96,
-    availableToday: false,
-    nextAvailableSlot: 'Mañana 10:00 hs',
   },
 ]

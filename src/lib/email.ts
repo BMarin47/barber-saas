@@ -8,7 +8,7 @@ export interface BookingEmailPayload {
   clientPhone: string
   clientEmail?: string | null
   serviceName: string
-  professionalName: string
+  professionalName?: string | null
   date: string // YYYY-MM-DD
   time: string // HH:mm
   paymentMethod: string
@@ -82,7 +82,6 @@ export function buildBookingEmailHtml(p: BookingEmailPayload, audience: 'custome
 <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#09090b;border:1px solid #27272a;border-radius:14px;padding:6px 18px;">
 ${row('Cliente:', `${escapeHtml(p.clientName)}<br><span style="color:#a1a1aa;font-weight:500;font-size:13px;">Tel: ${escapeHtml(p.clientPhone)}</span>`)}
 ${row('Servicio:', escapeHtml(p.serviceName))}
-${row('Profesional:', escapeHtml(p.professionalName))}
 ${row('Fecha:', `<span style="text-transform:capitalize;">${escapeHtml(formatDate(p.date))}</span>`)}
 ${row('Hora:', `${escapeHtml(p.time)} hs`, true)}
 ${row('Medio de pago:', escapeHtml(p.paymentMethod))}

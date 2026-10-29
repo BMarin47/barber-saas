@@ -196,8 +196,7 @@ export default function AdminDashboardPage() {
       return (
         b.clientName.toLowerCase().includes(q) ||
         b.clientPhone.toLowerCase().includes(q) ||
-        b.serviceName.toLowerCase().includes(q) ||
-        (b.professionalName && b.professionalName.toLowerCase().includes(q))
+        b.serviceName.toLowerCase().includes(q)
       )
     })
   }, [bookings, activeTab, todayStr, searchQuery])
@@ -591,8 +590,6 @@ export default function AdminDashboardPage() {
                           <span className="font-semibold text-zinc-200">
                             ✂️ {b.serviceName}
                           </span>
-                          <span>•</span>
-                          <span>💈 {b.professionalName || 'Facundo "El Maestro" Rossi'}</span>
                           {b.totalPrice ? (
                             <>
                               <span>•</span>
