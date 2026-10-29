@@ -24,7 +24,7 @@ import { StepConfirmation } from './StepConfirmation'
 import { BookingSuccessTicket } from './BookingSuccessTicket'
 import { PaymentBrickPanel } from './PaymentBrickPanel'
 import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { resolveSupabaseBrowserClient } from '@/lib/supabase/client'
 
 interface BookingWizardProps {
   tenant: TenantInfo
@@ -89,11 +89,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   // Auto-completar nombre y email si el cliente inició sesión con Google (Supabase Auth)
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient()
-    if (!supabase) return
+    let isMounted = true
+    let unsubscribe: (() => void) | null = null
 
     const applySessionUser = (user: { email?: string; user_metadata?: Record<string, string> } | null) => {
-      if (!user) return
+      if (!isMounted || !user) return
       const meta = user.user_metadata || {}
       const googleName =
         meta.full_name ||
@@ -111,14 +111,23 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       }
     }
 
-    supabase.auth.getUser().then(({ data }) => applySessionUser(data.user as never))
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      applySessionUser((session?.user as never) ?? null)
+    resolveSupabaseBrowserClient().then((supabase) => {
+      if (!isMounted || !supabase) return
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        applySessionUser((session?.user as never) ?? null)
+      })
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        applySessionUser((session?.user as never) ?? null)
+      })
+      unsubscribe = () => subscription.unsubscribe()
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      unsubscribe?.()
+    }
   }, [])
 
   // "Memoria Inteligente" (Auto-fill) from localStorage

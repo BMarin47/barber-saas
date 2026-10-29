@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { LogOut, Loader2 } from 'lucide-react'
-import { getSupabaseBrowserClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { resolveSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export interface GoogleUserProfile {
   name: string
@@ -16,7 +16,7 @@ interface GoogleSignInButtonProps {
   onUserAuthenticated?: (profile: GoogleUserProfile | null) => void
 }
 
-function extractUserProfile(user: SupabaseUser | null): GoogleUserProfile | null {
+export function extractUserProfile(user: SupabaseUser | null): GoogleUserProfile | null {
   if (!user) return null
   const meta = user.user_metadata || {}
   const name =
@@ -58,78 +58,110 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   const [profile, setProfile] = useState<GoogleUserProfile | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const callbackRef = useRef(onUserAuthenticated)
+  callbackRef.current = onUserAuthenticated
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient()
-    if (!supabase) return
-
     let isMounted = true
+    let unsubscribe: (() => void) | null = null
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (!isMounted) return
-      const extracted = extractUserProfile(data.user)
-      setProfile(extracted)
-      onUserAuthenticated?.(extracted)
-    })
+    resolveSupabaseBrowserClient().then((supabase) => {
+      if (!isMounted || !supabase) return
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMounted) return
-      const extracted = extractUserProfile(session?.user ?? null)
-      setProfile(extracted)
-      onUserAuthenticated?.(extracted)
+      // Si Google/Supabase redirigió con ?code= directamente a la página actual, intercambiarlo
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      if (code) {
+        supabase.auth.exchangeCodeForSession(code).then(({ data }) => {
+          if (!isMounted) return
+          if (data?.session?.user) {
+            const extracted = extractUserProfile(data.session.user)
+            setProfile(extracted)
+            callbackRef.current?.(extracted)
+          }
+          const cleanUrl = window.location.pathname
+          window.history.replaceState({}, '', cleanUrl)
+        })
+      }
+
+      // 1. Lectura inmediata de la sesión actual desde cookies/storage
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!isMounted) return
+        const extracted = extractUserProfile(session?.user ?? null)
+        setProfile(extracted)
+        callbackRef.current?.(extracted)
+      })
+
+      // 2. Suscripción en tiempo real a cambios de autenticación (login, logout, token refresh)
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!isMounted) return
+        const extracted = extractUserProfile(session?.user ?? null)
+        setProfile(extracted)
+        callbackRef.current?.(extracted)
+      })
+
+      unsubscribe = () => subscription.unsubscribe()
     })
 
     return () => {
       isMounted = false
-      subscription.unsubscribe()
+      unsubscribe?.()
     }
-  }, [onUserAuthenticated])
+  }, [])
 
   const handleSignIn = useCallback(async () => {
     setError('')
-    const supabase = getSupabaseBrowserClient()
-    if (!supabase || !isSupabaseConfigured()) {
-      setError('Configura NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY para habilitar Google Sign-In.')
-      return
-    }
-
     setLoading(true)
-    try {
-      const origin = window.location.origin
-      const nextPath = `${window.location.pathname}${window.location.search}`
-      const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
 
-      const { error: signInError } = await supabase.auth.signInWithOAuth({
+    try {
+      const supabase = await resolveSupabaseBrowserClient()
+      if (!supabase) {
+        const msg =
+          'Falta configurar NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en las variables de entorno de Vercel.'
+        setError(msg)
+        if (variant === 'navbar') {
+          window.alert(msg)
+        }
+        setLoading(false)
+        return
+      }
+
+      const { data, error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo,
-          queryParams: {
-            prompt: 'select_account',
-          },
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
       if (signInError) {
         setError(signInError.message)
+        if (variant === 'navbar') window.alert(signInError.message)
         setLoading(false)
+        return
+      }
+
+      if (data?.url) {
+        window.location.assign(data.url)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión con Google')
+      const msg = err instanceof Error ? err.message : 'Error al iniciar sesión con Google'
+      setError(msg)
+      if (variant === 'navbar') window.alert(msg)
       setLoading(false)
     }
-  }, [])
+  }, [variant])
 
   const handleSignOut = useCallback(async () => {
-    const supabase = getSupabaseBrowserClient()
+    const supabase = await resolveSupabaseBrowserClient()
     if (!supabase) return
     setLoading(true)
     await supabase.auth.signOut()
     setProfile(null)
-    onUserAuthenticated?.(null)
+    callbackRef.current?.(null)
     setLoading(false)
-  }, [onUserAuthenticated])
+  }, [])
 
   if (variant === 'navbar') {
     if (profile) {
