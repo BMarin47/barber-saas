@@ -22,7 +22,7 @@ import { StepDateTime } from './StepDateTime'
 import { StepConfirmation } from './StepConfirmation'
 import { BookingSuccessTicket } from './BookingSuccessTicket'
 import { PaymentBrickPanel } from './PaymentBrickPanel'
-import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_MP } from '@/lib/pricing'
+import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_CASH, PAYMENT_METHOD_MP } from '@/lib/pricing'
 import { resolveSupabaseBrowserClient } from '@/lib/supabase/client'
 
 interface BookingWizardProps {
@@ -48,7 +48,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     notes: '',
   })
   const [hasAutofilledData, setHasAutofilledData] = useState<boolean>(false)
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('')
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(PAYMENT_METHOD_CASH)
   const [paymentLink, setPaymentLink] = useState<string | null>(null)
   const [confirmStatus, setConfirmStatus] = useState<'idle' | 'processing' | 'success'>('idle')
   const [isSuccess, setIsSuccess] = useState<boolean>(false)
@@ -70,15 +70,34 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const panel1Ref = useRef<HTMLDivElement>(null)
   const panel2Ref = useRef<HTMLDivElement>(null)
   const panel3Ref = useRef<HTMLDivElement>(null)
+  const isInitialMountRef = useRef<boolean>(true)
 
-  // Auto-scroll inteligente: enfoca suavemente el panel que se acaba de abrir en móviles y escritorio
+  // Fijar estrictamente la vista en la parte superior al cargar la página
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual'
+      }
+      window.scrollTo(0, 0)
+    }
+  }, [])
+
+  // Auto-scroll inteligente sólo cuando el usuario avanza o cambia de paso (nunca en el montaje inicial)
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false
+      return
+    }
     const panels = [panel1Ref, panel2Ref, panel3Ref]
     const target = panels[activePanel - 1]?.current
     if (target) {
       const timer = setTimeout(() => {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 50)
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: isMobile ? 'center' : 'start',
+        })
+      }, 90)
       return () => clearTimeout(timer)
     }
   }, [activePanel])
@@ -333,7 +352,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setSelectedDate('')
     setSelectedTime('')
     setClient({ name: '', phone: '', email: '', notes: '' })
-    setSelectedPaymentMethod('')
+    setSelectedPaymentMethod(PAYMENT_METHOD_CASH)
     setPaymentLink(null)
     setBrick(null)
     setConfirmStatus('idle')
@@ -579,7 +598,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       }}
                       className="overflow-hidden border-t border-white/[0.06]"
                     >
-                      <div className="overflow-y-auto max-h-[50vh] sm:max-h-[54vh] md:max-h-[58vh] p-4 sm:p-6 pr-2">
+                      <div className="p-4 sm:p-6">
                         <StepServiceAndProfessional
                           services={services}
                           selectedService={selectedService}
@@ -710,7 +729,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       }}
                       className="overflow-hidden border-t border-white/[0.06]"
                     >
-                      <div className="overflow-y-auto max-h-[50vh] sm:max-h-[54vh] md:max-h-[58vh] p-4 sm:p-6 pr-2">
+                      <div className="p-4 sm:p-6">
                         <StepDateTime
                           service={selectedService}
                           selectedDate={selectedDate}
@@ -847,7 +866,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         }}
                         className="overflow-hidden border-t border-white/[0.06]"
                       >
-                        <div className="overflow-y-auto max-h-[50vh] sm:max-h-[54vh] md:max-h-[58vh] p-4 sm:p-6 pr-2">
+                        <div className="p-4 sm:p-6">
                           <StepConfirmation
                             tenant={tenant}
                             service={selectedService}

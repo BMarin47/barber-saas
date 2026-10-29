@@ -85,9 +85,11 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({
     [client.name, client.email, onChangeClient]
   )
 
-  // Con Mercado Pago deshabilitado, el pago presencial queda preseleccionado
+  // Preseleccionar pago en local por defecto para permitir el flujo de 3 clics sin fricción
   useEffect(() => {
-    if (!MERCADOPAGO_ENABLED && paymentMethod !== PAYMENT_METHOD_CASH) onSelectPaymentMethod(PAYMENT_METHOD_CASH)
+    if (!paymentMethod || (!MERCADOPAGO_ENABLED && paymentMethod !== PAYMENT_METHOD_CASH)) {
+      onSelectPaymentMethod(PAYMENT_METHOD_CASH)
+    }
   }, [paymentMethod, onSelectPaymentMethod])
 
   const total = useMemo(() => calculateTotal(service.price), [service.price])

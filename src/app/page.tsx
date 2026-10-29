@@ -1,12 +1,19 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BookingWizard } from '@/components/booking/BookingWizard'
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
 import { mockTenant, mockServices } from '@/data/mock-tenant'
 import { Scissors, ShieldCheck, Database, Layers, CheckCircle } from 'lucide-react'
 
 export default function HomePage() {
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual'
+    }
+    window.scrollTo(0, 0)
+  }, [])
+
   return (
     <main className="min-h-screen bg-black text-zinc-100 relative overflow-hidden flex flex-col">
       {/* Background Subtle Violet Ambient Lights (Clean Tech Minimalist) */}
