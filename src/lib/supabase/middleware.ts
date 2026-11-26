@@ -1,9 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const FALLBACK_SUPABASE_URL = 'https://juxbbesoptasgfinthyl.supabase.co'
-const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_8pPqy44iRWvBMxVGlrmVRw_fq-5CJgz'
-
 function deriveSupabaseUrl(): string | null {
   const explicit =
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
@@ -18,7 +15,7 @@ function deriveSupabaseUrl(): string | null {
     const directMatch = raw.match(/@db\.([a-z0-9]{15,25})\.supabase\.co/i)
     if (directMatch?.[1]) return `https://${directMatch[1]}.supabase.co`
   }
-  return FALLBACK_SUPABASE_URL
+  return null
 }
 
 function deriveSupabaseAnonKey(): string | null {
@@ -26,7 +23,7 @@ function deriveSupabaseAnonKey(): string | null {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
     process.env.SUPABASE_ANON_KEY?.trim() ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
-    FALLBACK_SUPABASE_ANON_KEY
+    null
   )
 }
 
@@ -76,7 +73,6 @@ export async function updateSession(request: NextRequest) {
   })
 
   const allCookies = request.cookies.getAll()
-  const hasFallbackCookie = allCookies.some((c) => c.name.includes('juxbbesoptasgfinthyl'))
   const hasAnySupabaseCookie = allCookies.some((c) => c.name.startsWith('sb-'))
 
   // Si no hay ninguna cookie de sesión sb-*, no necesitamos hacer una llamada de red en el middleware
@@ -84,8 +80,8 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  const supabaseUrl = hasFallbackCookie ? FALLBACK_SUPABASE_URL : deriveSupabaseUrl()
-  const supabaseAnonKey = hasFallbackCookie ? FALLBACK_SUPABASE_ANON_KEY : deriveSupabaseAnonKey()
+  const supabaseUrl = deriveSupabaseUrl()
+  const supabaseAnonKey = deriveSupabaseAnonKey()
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return supabaseResponse

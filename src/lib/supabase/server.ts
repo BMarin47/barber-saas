@@ -1,9 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { resolveActiveSupabaseCredentials } from '@/app/api/auth/config/route'
+import { getServerSupabaseCredentials } from '@/app/api/auth/config/route'
 
 export async function createSupabaseServerClient() {
-  const { url: supabaseUrl, anonKey: supabaseAnonKey } = await resolveActiveSupabaseCredentials()
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } = getServerSupabaseCredentials()
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return null

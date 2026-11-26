@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { resolveActiveSupabaseCredentials } from '@/app/api/auth/config/route'
+import { getServerSupabaseCredentials } from '@/app/api/auth/config/route'
 
 function resolveBaseOrigin(request: NextRequest, fallbackOrigin: string): string {
   if (process.env.NODE_ENV === 'development') {
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(errUrl.toString())
   }
 
-  const { url: supabaseUrl, anonKey: supabaseAnonKey } = await resolveActiveSupabaseCredentials()
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } = getServerSupabaseCredentials()
 
   if (code && supabaseUrl && supabaseAnonKey) {
     const cookieStore = await cookies()
