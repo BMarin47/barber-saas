@@ -24,6 +24,11 @@ import { BookingSuccessTicket } from './BookingSuccessTicket'
 import { PaymentBrickPanel } from './PaymentBrickPanel'
 import { calculateTotal, normalizePaymentMethod, PAYMENT_METHOD_CASH, PAYMENT_METHOD_MP } from '@/lib/pricing'
 import { resolveSupabaseBrowserClient } from '@/lib/supabase/client'
+import {
+  getStoredGoogleProfile,
+  GOOGLE_AUTH_EVENT,
+  type GoogleUserProfile,
+} from '@/components/auth/GoogleSignInButton'
 
 interface BookingWizardProps {
   tenant: TenantInfo
@@ -102,10 +107,33 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     }
   }, [activePanel])
 
-  // Auto-completar nombre y email si el cliente inició sesión con Google (Supabase Auth)
+  // Auto-completar nombre y email si el cliente inició sesión con Google (Supabase Auth o sesión local integrada)
   useEffect(() => {
     let isMounted = true
     let unsubscribe: (() => void) | null = null
+
+    const applyProfile = (profile: GoogleUserProfile | null) => {
+      if (!isMounted || !profile) return
+      if (profile.name || profile.email) {
+        setHasAutofilledData(true)
+        setClient((prev) => ({
+          ...prev,
+          name: profile.name || prev.name,
+          email: profile.email || prev.email,
+        }))
+      }
+    }
+
+    const storedProfile = getStoredGoogleProfile()
+    if (storedProfile) {
+      applyProfile(storedProfile)
+    }
+
+    const handleCustomAuth = (e: Event) => {
+      const customEvent = e as CustomEvent<GoogleUserProfile | null>
+      applyProfile(customEvent.detail ?? getStoredGoogleProfile())
+    }
+    window.addEventListener(GOOGLE_AUTH_EVENT, handleCustomAuth)
 
     const applySessionUser = (user: { email?: string; user_metadata?: Record<string, string> } | null) => {
       if (!isMounted || !user) return
@@ -117,20 +145,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         ''
       const googleEmail = user.email || meta.email || ''
       if (googleName || googleEmail) {
-        setHasAutofilledData(true)
-        setClient((prev) => ({
-          ...prev,
-          name: prev.name || googleName,
-          email: prev.email || googleEmail,
-        }))
+        applyProfile({ name: googleName, email: googleEmail })
       }
     }
 
     resolveSupabaseBrowserClient().then((supabase) => {
       if (!isMounted || !supabase) return
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        applySessionUser((session?.user as never) ?? null)
-      })
+      supabase.auth
+        .getSession()
+        .then(({ data: { session } }) => {
+          applySessionUser((session?.user as never) ?? null)
+        })
+        .catch(() => {})
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -141,6 +167,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
     return () => {
       isMounted = false
+      window.removeEventListener(GOOGLE_AUTH_EVENT, handleCustomAuth)
       unsubscribe?.()
     }
   }, [])
