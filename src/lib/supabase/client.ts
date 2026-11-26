@@ -18,29 +18,18 @@ function buildBrowserClient(url: string, anonKey: string): SupabaseClient {
 }
 
 export function getSupabaseBrowserClient(): SupabaseClient | null {
-  if (browserClient) return browserClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
-
-  if (supabaseUrl && supabaseAnonKey) {
-    browserClient = buildBrowserClient(supabaseUrl, supabaseAnonKey)
-    return browserClient
-  }
-
-  return null
+  return browserClient
 }
 
 /**
- * Obtiene el cliente de Supabase en el navegador; si las variables NEXT_PUBLIC_*
- * no estaban disponibles en build-time, consulta /api/auth/config en runtime.
+ * Obtiene el cliente de Supabase en el navegador consultando /api/auth/config
+ * para garantizar que siempre se utilice el proyecto activo y verificado (con failover automático si el primario está pausado).
  */
 export async function resolveSupabaseBrowserClient(): Promise<SupabaseClient | null> {
-  const sync = getSupabaseBrowserClient()
-  if (sync) return sync
+  if (browserClient) return browserClient
 
   if (!initPromise) {
-    initPromise = fetch('/api/auth/config')
+    initPromise = fetch('/api/auth/config', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data?.url && data?.anonKey && data?.reachable !== false) {
@@ -49,7 +38,15 @@ export async function resolveSupabaseBrowserClient(): Promise<SupabaseClient | n
         }
         return null
       })
-      .catch(() => null)
+      .catch(() => {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+        if (supabaseUrl && supabaseAnonKey) {
+          browserClient = buildBrowserClient(supabaseUrl, supabaseAnonKey)
+          return browserClient
+        }
+        return null
+      })
   }
 
   return initPromise
