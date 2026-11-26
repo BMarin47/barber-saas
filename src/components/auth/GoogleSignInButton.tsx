@@ -61,7 +61,10 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const callbackRef = useRef(onUserAuthenticated)
-  callbackRef.current = onUserAuthenticated
+
+  useEffect(() => {
+    callbackRef.current = onUserAuthenticated
+  }, [onUserAuthenticated])
 
   useEffect(() => {
     let isMounted = true
@@ -69,22 +72,6 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
 
     resolveSupabaseBrowserClient().then((supabase) => {
       if (!isMounted || !supabase) return
-
-      // Si Google/Supabase redirigió con ?code= directamente a la página actual, intercambiarlo
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get('code')
-      if (code) {
-        supabase.auth.exchangeCodeForSession(code).then(({ data }) => {
-          if (!isMounted) return
-          if (data?.session?.user) {
-            const extracted = extractUserProfile(data.session.user)
-            setProfile(extracted)
-            callbackRef.current?.(extracted)
-          }
-          const cleanUrl = window.location.pathname
-          window.history.replaceState({}, '', cleanUrl)
-        })
-      }
 
       // 1. Lectura inmediata de la sesión actual desde cookies/storage
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -95,6 +82,8 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         if (extracted && variant === 'login') {
           router.replace('/')
         }
+      }).catch(() => {
+        // Ignorar errores de red si el proyecto de Supabase está pausado
       })
 
       // 2. Suscripción en tiempo real a cambios de autenticación (login, logout, token refresh)
@@ -124,6 +113,26 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     setLoading(true)
 
     try {
+      // Verificar estado y conectividad real del proyecto Supabase antes de redirigir el navegador
+      let configData: { configured?: boolean; reachable?: boolean; url?: string | null } | null = null
+      try {
+        const cfgRes = await fetch('/api/auth/config', { cache: 'no-store' })
+        configData = await cfgRes.json()
+      } catch {
+        // continuar con cliente local
+      }
+
+      if (configData && configData.configured && configData.reachable === false) {
+        const projectHost = configData.url || 'Supabase'
+        const msg = `El servidor de autenticación (${projectHost}) se encuentra pausado o sin conexión en Supabase. Reactivalo desde tu panel de Supabase ( botón "Restore project" ) o continuá tu reserva directamente.`
+        setError(msg)
+        if (variant === 'navbar') {
+          window.alert(msg)
+        }
+        setLoading(false)
+        return
+      }
+
       const supabase = await resolveSupabaseBrowserClient()
       if (!supabase) {
         const msg =
@@ -140,6 +149,10 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
         },
       })
 

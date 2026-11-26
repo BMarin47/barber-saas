@@ -28,15 +28,45 @@ function deriveSupabaseAnonKey(): string | null {
 }
 
 export async function updateSession(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
 
-  // 1. Rutas públicas que nunca deben redirigir a /login (evita bucles e interferencias con webhooks/admin)
-  const isPublicRoute =
-    pathname === '/login' ||
+  // 1. NUNCA interceptar ni mutar cookies en /auth/callback, /api/*, /qr, /admin o /cancelar/*
+  if (
     pathname.startsWith('/auth/callback') ||
     pathname.startsWith('/api/') ||
+    pathname === '/qr' ||
+    pathname.startsWith('/qr/') ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/cancelar/')
+  ) {
+    return NextResponse.next({
+      request,
+    })
+  }
+
+  // 2. Si Supabase OAuth redirigió con ?code= a la raíz (/) u otra ruta que no sea /auth/callback,
+  // redirigir inmediatamente a /auth/callback preservando todas las cookies (incluido el code_verifier PKCE).
+  if (
+    searchParams.has('code') &&
+    !searchParams.has('error') &&
+    !pathname.startsWith('/auth/callback')
+  ) {
+    const callbackUrl = request.nextUrl.clone()
+    callbackUrl.pathname = '/auth/callback'
+    if (!callbackUrl.searchParams.has('next') && pathname !== '/login') {
+      callbackUrl.searchParams.set('next', pathname)
+    }
+
+    const redirectResponse = NextResponse.redirect(callbackUrl)
+    request.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, {
+        path: '/',
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      })
+    })
+    return redirectResponse
+  }
 
   let supabaseResponse = NextResponse.next({
     request,
@@ -49,41 +79,46 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({
+            request,
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              path: options?.path || '/',
+              sameSite: (options?.sameSite as 'lax' | 'strict' | 'none') || 'lax',
+              secure: options?.secure ?? process.env.NODE_ENV === 'production',
+            })
+          )
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-        supabaseResponse = NextResponse.next({
-          request,
-        })
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
-        )
-      },
-    },
-  })
+    })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  // Si el usuario ya tiene sesión activa e intenta ir a /login, enviarlo a la raíz (/)
-  if (user && pathname === '/login') {
-    const homeUrl = request.nextUrl.clone()
-    homeUrl.pathname = '/'
-    homeUrl.search = ''
-    return NextResponse.redirect(homeUrl)
-  }
-
-  // Si no hay sesión activa y la ruta es privada (incluyendo / y /[slug]), redirigir a /login
-  if (!user && !isPublicRoute) {
-    const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/login'
-    loginUrl.search = ''
-    return NextResponse.redirect(loginUrl)
+    // Si el usuario ya tiene sesión activa e intenta ir a /login, enviarlo a la raíz (/)
+    if (user && pathname === '/login') {
+      const homeUrl = request.nextUrl.clone()
+      homeUrl.pathname = '/'
+      homeUrl.search = ''
+      const redirectRes = NextResponse.redirect(homeUrl)
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectRes.cookies.set(c.name, c.value)
+      })
+      return redirectRes
+    }
+  } catch (err) {
+    console.warn('[Supabase Middleware] Error refrescando sesión:', err)
   }
 
   return supabaseResponse

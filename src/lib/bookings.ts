@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import prisma from '@/lib/prisma'
 import { PAYMENT_METHOD_CASH } from '@/lib/pricing'
+import { getArgentinaNow } from '@/utils/generateTimeSlots'
 
 export interface BookingData {
   id?: string
@@ -39,7 +40,7 @@ const initialSampleBookings: BookingData[] = [
     clientPhone: '5492604654255',
     serviceName: 'Corte y Barba',
     professionalName: DEFAULT_PROFESSIONAL_NAME,
-    date: new Date().toISOString().split('T')[0],
+    date: getArgentinaNow().dateStr,
     time: '16:00',
     status: 'CONFIRMED',
     totalPrice: 18000,
@@ -56,7 +57,7 @@ const initialSampleBookings: BookingData[] = [
     clientPhone: '5492604889911',
     serviceName: 'Corte de Pelo',
     professionalName: DEFAULT_PROFESSIONAL_NAME,
-    date: new Date().toISOString().split('T')[0],
+    date: getArgentinaNow().dateStr,
     time: '17:30',
     status: 'CONFIRMED',
     totalPrice: 15000,
@@ -71,6 +72,51 @@ const initialSampleBookings: BookingData[] = [
 
 if (!globalThis.__memoryBookings) {
   globalThis.__memoryBookings = [...initialSampleBookings]
+}
+
+let postgresTableEnsured = false
+
+async function ensurePostgresBookingTable(): Promise<void> {
+  if (postgresTableEnsured) return
+  const dbUrl = process.env.DATABASE_URL?.trim() || ''
+  if (!/^postgres(ql)?:\/\//i.test(dbUrl)) {
+    postgresTableEnsured = true
+    return
+  }
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Booking" (
+        "id" TEXT NOT NULL,
+        "tenantId" TEXT NOT NULL DEFAULT 'tenant-golden-blade',
+        "clientName" TEXT NOT NULL,
+        "clientPhone" TEXT NOT NULL,
+        "serviceName" TEXT NOT NULL,
+        "professionalName" TEXT DEFAULT 'Facundo "El Maestro" Rossi',
+        "date" TEXT NOT NULL,
+        "time" TEXT NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'CONFIRMED',
+        "totalPrice" DOUBLE PRECISION DEFAULT 0,
+        "paymentMethod" TEXT DEFAULT 'Efectivo / Transferencia en el local',
+        "paymentStatus" TEXT NOT NULL DEFAULT 'PENDING',
+        "paymentId" TEXT,
+        "preferenceId" TEXT,
+        "clientEmail" TEXT,
+        "clientNotes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "Booking_pkey" PRIMARY KEY ("id")
+      );
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Booking_tenantId_date_idx" ON "Booking"("tenantId", "date");
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Booking_date_idx" ON "Booking"("date");
+    `)
+    postgresTableEnsured = true
+  } catch (err) {
+    console.warn('[Bookings] Aviso al verificar/crear tabla Booking en PostgreSQL:', err)
+  }
 }
 
 /** Se lanza cuando el horario ya tiene una reserva activa. */
@@ -97,6 +143,7 @@ async function getActiveBookingsForDate(
   date: string
 ): Promise<Pick<BookingData, 'time'>[]> {
   try {
+    await ensurePostgresBookingTable()
     return await prisma.booking.findMany({
       where: { tenantId, date, status: { not: 'CANCELLED' } },
       select: { time: true },
@@ -147,6 +194,7 @@ export async function createBooking(data: BookingData): Promise<BookingData> {
   }
 
   try {
+    await ensurePostgresBookingTable()
     const created = await prisma.booking.create({
       data: {
         id: fullData.id,
@@ -190,6 +238,7 @@ export async function createBooking(data: BookingData): Promise<BookingData> {
 
 export async function getBookings(tenantId?: string): Promise<BookingData[]> {
   try {
+    await ensurePostgresBookingTable()
     const whereClause = tenantId ? { tenantId } : {}
     const list = await prisma.booking.findMany({
       where: whereClause,
@@ -225,6 +274,7 @@ export async function getBookings(tenantId?: string): Promise<BookingData[]> {
 
 export async function getBookingById(id: string): Promise<BookingData | null> {
   try {
+    await ensurePostgresBookingTable()
     const booking = await prisma.booking.findUnique({
       where: { id },
     })
@@ -242,6 +292,7 @@ export async function cancelBooking(id: string): Promise<BookingData | null> {
   let updatedBooking: BookingData | null = null
 
   try {
+    await ensurePostgresBookingTable()
     const updated = await prisma.booking.update({
       where: { id },
       data: { status: 'CANCELLED' },
@@ -280,6 +331,7 @@ export async function updateBookingPayment(
   let updatedBooking: BookingData | null = null
 
   try {
+    await ensurePostgresBookingTable()
     const updated = await prisma.booking.update({
       where: { id },
       data: {

@@ -77,10 +77,13 @@ export async function POST(req: Request) {
       initPoint: result.initPoint,
       sandboxInitPoint: result.sandboxInitPoint,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error en POST /api/payments/create-preference:', error)
     return NextResponse.json(
-      { success: false, error: error.message || 'Error interno al procesar el pago' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error interno al procesar el pago',
+      },
       { status: 500 }
     )
   }

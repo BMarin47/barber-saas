@@ -1,8 +1,7 @@
-// BarberSaaS - Service Worker para PWA (Stale-While-Revalidate para estáticos y Network-Only para APIs)
-const CACHE_NAME = 'barber-saas-cache-v1'
+// BarberSaaS - Service Worker para PWA (Stale-While-Revalidate para estáticos y Network-Only para APIs y Auth)
+const CACHE_NAME = 'barber-saas-cache-v2'
 
 const PRECACHE_ASSETS = [
-  '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
@@ -13,7 +12,9 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS)
+      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
+        console.warn('[SW] Error pre-cacheando estáticos:', err)
+      })
     }).then(() => self.skipWaiting())
   )
 })
@@ -36,10 +37,20 @@ self.addEventListener('activate', (event) => {
 // Fetch Strategy
 self.addEventListener('fetch', (event) => {
   const { request } = event
+  if (request.method !== 'GET') return
   const url = new URL(request.url)
 
-  // 1. Las llamadas a APIs (/api/*) SIEMPRE van directo a la red (sin cache para datos en tiempo real)
-  if (url.pathname.startsWith('/api/')) {
+  // 1. Llamadas a APIs, Auth, Login, Admin o OAuth SIEMPRE van directo a la red sin interceptar
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/auth/') ||
+    url.pathname.startsWith('/login') ||
+    url.pathname.startsWith('/admin') ||
+    url.searchParams.has('code') ||
+    url.searchParams.has('error') ||
+    url.hostname.includes('supabase.co') ||
+    url.hostname.includes('accounts.google.com')
+  ) {
     return
   }
 
@@ -69,9 +80,17 @@ self.addEventListener('fetch', (event) => {
   // 3. Documentos HTML / Navegación: Network First con fallback a Cache
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => {
-        return caches.match(request).then((cached) => cached || caches.match('/'))
-      })
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const responseClone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone))
+          }
+          return response
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => cached || caches.match('/'))
+        })
     )
   }
 })

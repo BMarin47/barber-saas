@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 function deriveSupabaseUrlFromDatabaseUrl(): string | null {
   const candidates = [process.env.DATABASE_URL, process.env.DIRECT_URL]
   for (const raw of candidates) {
@@ -34,11 +36,39 @@ export function getServerSupabaseCredentials(): { url: string | null; anonKey: s
   return { url, anonKey }
 }
 
+async function checkSupabaseHostReachable(url: string): Promise<boolean> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 2500)
+    const cleanUrl = url.replace(/\/$/, '')
+    const res = await fetch(`${cleanUrl}/auth/v1/health`, {
+      method: 'GET',
+      signal: controller.signal,
+      cache: 'no-store',
+    }).finally(() => clearTimeout(timeoutId))
+    // Incluso si devuelve 401/403/404, si resolvió DNS y respondió HTTP el proyecto está activo
+    return res.status > 0
+  } catch {
+    return false
+  }
+}
+
 export async function GET() {
   const { url, anonKey } = getServerSupabaseCredentials()
-  return NextResponse.json({
-    configured: Boolean(url && anonKey),
-    url,
-    anonKey,
-  })
+  const configured = Boolean(url && anonKey)
+  const reachable = configured && url ? await checkSupabaseHostReachable(url) : false
+
+  return NextResponse.json(
+    {
+      configured,
+      reachable,
+      url,
+      anonKey,
+    },
+    {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    }
+  )
 }

@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     // Mercado Pago firma el manifest con el data.id de la query string.
     const queryDataId = searchParams.get('data.id') || searchParams.get('id')
 
-    let bodyData: any = {}
+    let bodyData: { type?: string; action?: string; data?: { id?: string | number } } = {}
     try {
       bodyData = await req.json()
     } catch {
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
 
     // Responder siempre HTTP 200 con prontitud a Mercado Pago para confirmar recepción
     return NextResponse.json({ received: true }, { status: 200 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error procesando webhook de Mercado Pago:', error)
     return NextResponse.json({ error: 'Error procesando notificación' }, { status: 500 })
   }

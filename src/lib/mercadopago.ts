@@ -35,7 +35,12 @@ const MP_API_BASE = 'https://api.mercadopago.com'
  * Obtiene el access token de Mercado Pago desde las variables de entorno
  */
 export function getMercadoPagoAccessToken(): string | null {
-  return process.env.MP_ACCESS_TOKEN || null
+  return (
+    process.env.MP_ACCESS_TOKEN?.trim() ||
+    process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() ||
+    process.env.MERCADO_PAGO_ACCESS_TOKEN?.trim() ||
+    null
+  )
 }
 
 /**
@@ -114,12 +119,12 @@ export async function createPreference(params: CreatePreferenceParams): Promise<
       initPoint: data.init_point,
       sandboxInitPoint: data.sandbox_init_point,
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Excepción al crear preferencia MP:', err)
     return {
       success: false,
       configured: true,
-      error: err.message || 'Error de red con Mercado Pago',
+      error: err instanceof Error ? err.message : 'Error de red con Mercado Pago',
     }
   }
 }

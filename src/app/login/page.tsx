@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-import { Scissors, ShieldCheck, Sparkles, Star } from 'lucide-react'
+import Link from 'next/link'
+import { Scissors, ShieldCheck, Sparkles, Star, ArrowRight } from 'lucide-react'
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
 import { mockTenant } from '@/data/mock-tenant'
 
@@ -53,6 +54,15 @@ export default function LoginPage() {
             <p className="text-[11px] text-zinc-500 leading-relaxed">
               Completaremos automáticamente tu nombre y correo electrónico para agilizar tu reserva.
             </p>
+            <div className="pt-1">
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-white transition-colors py-1.5 px-3 rounded-xl hover:bg-white/[0.04]"
+              >
+                <span>Continuar al turnero sin iniciar sesión</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
 
           {/* Security footer inside card */}

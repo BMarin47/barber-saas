@@ -7,6 +7,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    /*
+     * Coincide con todas las rutas excepto:
+     * - _next/static (archivos estáticos)
+     * - _next/image (optimización de imágenes)
+     * - auth/callback (intercambio directo de código PKCE en el Route Handler)
+     * - favicon.ico, manifest.json, sw.js, workbox y archivos de imagen/iconos
+     */
+    '/((?!_next/static|_next/image|auth/callback|favicon\\.ico|manifest\\.json|sw\\.js|workbox-.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

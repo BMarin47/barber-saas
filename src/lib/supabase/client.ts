@@ -4,6 +4,19 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 let browserClient: SupabaseClient | null = null
 let initPromise: Promise<SupabaseClient | null> | null = null
 
+function buildBrowserClient(url: string, anonKey: string): SupabaseClient {
+  return createBrowserClient(url, anonKey, {
+    cookieOptions: {
+      path: '/',
+      sameSite: 'lax',
+      secure:
+        typeof window !== 'undefined'
+          ? window.location.protocol === 'https:'
+          : process.env.NODE_ENV === 'production',
+    },
+  })
+}
+
 export function getSupabaseBrowserClient(): SupabaseClient | null {
   if (browserClient) return browserClient
 
@@ -11,7 +24,7 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
 
   if (supabaseUrl && supabaseAnonKey) {
-    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey)
+    browserClient = buildBrowserClient(supabaseUrl, supabaseAnonKey)
     return browserClient
   }
 
@@ -30,8 +43,8 @@ export async function resolveSupabaseBrowserClient(): Promise<SupabaseClient | n
     initPromise = fetch('/api/auth/config')
       .then((res) => res.json())
       .then((data) => {
-        if (data?.url && data?.anonKey) {
-          browserClient = createBrowserClient(data.url, data.anonKey)
+        if (data?.url && data?.anonKey && data?.reachable !== false) {
+          browserClient = buildBrowserClient(data.url, data.anonKey)
           return browserClient
         }
         return null

@@ -24,6 +24,7 @@ import {
   Banknote,
   Phone,
 } from 'lucide-react'
+import { getArgentinaNow } from '@/utils/generateTimeSlots'
 
 interface Booking {
   id: string
@@ -58,28 +59,7 @@ export default function AdminDashboardPage() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], [])
-
-  // Verificar sesión activa segura en el servidor
-  useEffect(() => {
-    async function checkSession() {
-      try {
-        setVerifyingSession(true)
-        const res = await fetch('/api/admin/me')
-        const data = await res.json()
-        if (data.authenticated) {
-          setIsAuthenticated(true)
-        } else {
-          setIsAuthenticated(false)
-        }
-      } catch {
-        setIsAuthenticated(false)
-      } finally {
-        setVerifyingSession(false)
-      }
-    }
-    checkSession()
-  }, [])
+  const todayStr = useMemo(() => getArgentinaNow().dateStr, [])
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -101,11 +81,27 @@ export default function AdminDashboardPage() {
     }
   }, [])
 
+  // Verificar sesión activa segura en el servidor
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchBookings()
+    async function checkSession() {
+      try {
+        setVerifyingSession(true)
+        const res = await fetch('/api/admin/me')
+        const data = await res.json()
+        if (data.authenticated) {
+          setIsAuthenticated(true)
+          await fetchBookings()
+        } else {
+          setIsAuthenticated(false)
+        }
+      } catch {
+        setIsAuthenticated(false)
+      } finally {
+        setVerifyingSession(false)
+      }
     }
-  }, [isAuthenticated, fetchBookings])
+    checkSession()
+  }, [fetchBookings])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,6 +119,7 @@ export default function AdminDashboardPage() {
       if (data.success) {
         setIsAuthenticated(true)
         setPasswordInput('')
+        await fetchBookings()
       } else {
         setAuthError(data.error || 'Contraseña incorrecta')
       }

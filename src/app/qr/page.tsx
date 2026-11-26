@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef } from 'react'
 import Link from 'next/link'
 import QRCode from 'react-qr-code'
 import { motion } from 'framer-motion'
@@ -11,26 +11,22 @@ import {
   Printer,
   Check,
   ArrowLeft,
-  Share2,
   ExternalLink,
   Sparkles,
 } from 'lucide-react'
 
 export default function QrGeneratorPage() {
-  const [appUrl, setAppUrl] = useState<string>('https://barber-saas-nu.vercel.app')
-  const [copied, setCopied] = useState<boolean>(false)
-  const qrContainerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
+  const [appUrl] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const origin = window.location.origin
       if (origin && !origin.includes('localhost')) {
-        setAppUrl(origin)
-      } else {
-        setAppUrl('https://barber-saas-nu.vercel.app')
+        return origin
       }
     }
-  }, [])
+    return 'https://barber-saas-nu.vercel.app'
+  })
+  const [copied, setCopied] = useState<boolean>(false)
+  const qrContainerRef = useRef<HTMLDivElement>(null)
 
   const handleCopyLink = async () => {
     try {

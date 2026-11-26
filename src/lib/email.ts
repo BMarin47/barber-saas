@@ -178,7 +178,10 @@ export async function sendBookingConfirmationEmails(p: BookingEmailPayload): Pro
       }
     }
 
-    const adminEmail = process.env.BOOKING_NOTIFY_EMAIL?.trim()
+    const adminEmail =
+      process.env.BOOKING_NOTIFY_EMAIL?.trim() ||
+      process.env.NOTIFICATION_EMAIL?.trim() ||
+      process.env.ADMIN_EMAIL?.trim()
     if (adminEmail) {
       try {
         const r = await sendViaResend({
